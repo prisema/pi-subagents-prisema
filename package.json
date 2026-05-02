@@ -1,16 +1,16 @@
 {
-  "name": "@tintinweb/pi-subagents",
-  "version": "0.6.3-prisema.1",
-  "description": "A pi extension extension that brings smart Claude Code-style autonomous sub-agents to pi.",
+  "name": "@prisema/pi-subagents-prisema",
+  "version": "0.6.3-prisema.2",
+  "description": "Prisema pi extension for autonomous sub-agents, Taskdone planning roles, TDD implementation, and evidence-driven review.",
   "author": "Prisema",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prisema/pi-subagents-tintinweb.git"
+    "url": "https://github.com/prisema/pi-subagents-prisema.git"
   },
-  "homepage": "https://github.com/prisema/pi-subagents-tintinweb#readme",
+  "homepage": "https://github.com/prisema/pi-subagents-prisema#readme",
   "bugs": {
-    "url": "https://github.com/prisema/pi-subagents-tintinweb/issues"
+    "url": "https://github.com/prisema/pi-subagents-prisema/issues"
   },
   "keywords": [
     "pi-package",
@@ -45,8 +45,8 @@
     "extensions": [
       "./src/index.ts"
     ],
-    "video": "https://github.com/tintinweb/pi-subagents/raw/master/media/demo.mp4",
-    "image": "https://github.com/tintinweb/pi-subagents/raw/master/media/screenshot.png"
+    "video": "https://github.com/prisema/pi-subagents-prisema/raw/master/media/demo.mp4",
+    "image": "https://github.com/prisema/pi-subagents-prisema/raw/master/media/screenshot.png"
   },
   "peerDependencies": {
     "@mariozechner/pi-ai": ">=0.68.0",
