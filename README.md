@@ -4,6 +4,12 @@ A Prisema [pi](https://pi.dev) extension that brings **Claude Code-style autonom
 
 > **Status:** Early release.
 
+## Why this repository exists
+
+This project started as a Prisema fork of the original `pi-subagents` work. As Prisema's workflow diverged — `Explore` for Context Packs, `Plan` for approval-gated Taskdone artifacts, `Implement` for scoped TDD execution, `Review` for evidence-driven validation, and FFF-first repo search — it stopped making sense to keep it as a GitHub fork that implied the same direction and release path.
+
+`prisema/pi-subagents-prisema` is now a standalone public repository, not a GitHub fork. It keeps upstream MIT attribution, but the Prisema line is intentionally maintained for our agent workflow and is public so other pi users can reuse or adapt it.
+
 <img width="600" alt="pi-subagents screenshot" src="https://github.com/prisema/pi-subagents-prisema/raw/master/media/screenshot.png" />
 
 

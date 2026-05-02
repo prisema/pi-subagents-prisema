@@ -10,7 +10,8 @@ The repository had diverged from upstream with Prisema-specific defaults: `Explo
 - Rebranded the package as `@prisema/pi-subagents-prisema`.
 - Updated repository, homepage, bugs, and media URLs to `https://github.com/prisema/pi-subagents-prisema`.
 - Updated README install command to `pi install git:github.com/prisema/pi-subagents-prisema`.
-- Kept the upstream MIT attribution in README.
+- Kept the upstream MIT attribution in README and LICENSE while adding Prisema copyright for this derivative line.
+- Documented why Prisema moved from a fork to a standalone public repository.
 - Bumped version to `0.6.3-prisema.2` for the standalone repo cut.
 - Plan: create a new GitHub repo, set it as `origin`, remove the upstream fork remote, push `master`, tag, and release from the new repo.
 
@@ -33,7 +34,7 @@ The repository had diverged from upstream with Prisema-specific defaults: `Explo
 ## Risks
 - Existing installs from `git:github.com/prisema/pi-subagents-tintinweb` will keep using the old fork repo until updated.
 - Old GitHub releases remain in the old fork repo unless separately migrated.
-- The old fork is not archived or deleted by this change.
+- The old fork is not archived or deleted by this change; remote deletion needs explicit confirmation because it is destructive.
 
 ## Next
 - Validate, commit, create `prisema/pi-subagents-prisema`, update remotes, push, tag, release.
