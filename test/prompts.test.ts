@@ -93,6 +93,16 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("Never use edit/write");
   });
 
+  it("Remove Slop prompt cleans only scoped diff slop", () => {
+    const config = getDefaultConfig("Remove Slop");
+    const prompt = buildAgentPrompt(config, "/workspace", env);
+    expect(prompt).toContain("REMOVE SLOP CLEANUP AGENT");
+    expect(prompt).toContain("Clean only files touched by the just-finished job");
+    expect(prompt).toContain("Never use write");
+    expect(prompt).toContain("git diff");
+    expect(prompt).toContain("edit for precise changes");
+  });
+
   it("general-purpose uses append mode (parent twin)", () => {
     const config = getDefaultConfig("general-purpose");
     const parentPrompt = "You are a parent coding agent with full powers.";

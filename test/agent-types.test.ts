@@ -44,6 +44,7 @@ describe("agent type registry", () => {
       expect(isValidType("Plan")).toBe(true);
       expect(isValidType("Implement")).toBe(true);
       expect(isValidType("Review")).toBe(true);
+      expect(isValidType("Remove Slop")).toBe(true);
     });
 
     it("does not include removed agents", () => {
@@ -63,6 +64,8 @@ describe("agent type registry", () => {
       expect(isValidType("systematic debugging")).toBe(true);
       expect(isValidType("systematic-debugging")).toBe(true);
       expect(isValidType("plan")).toBe(true);
+      expect(isValidType("remove slop")).toBe(true);
+      expect(isValidType("remove-slop")).toBe(true);
     });
 
     it("case-insensitive lookup works for getAgentConfig", () => {
@@ -79,6 +82,8 @@ describe("agent type registry", () => {
       expect(resolveType("systematic-debugging")).toBe("Systematic Debugging");
       expect(resolveType("implement")).toBe("Implement");
       expect(resolveType("review")).toBe("Review");
+      expect(resolveType("remove slop")).toBe("Remove Slop");
+      expect(resolveType("remove-slop")).toBe("Remove Slop");
       expect(resolveType("nonexistent")).toBeUndefined();
     });
 
@@ -136,6 +141,15 @@ describe("agent type registry", () => {
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
     });
 
+    it("Remove Slop can edit touched scope but cannot write new files", () => {
+      const config = getConfig("Remove Slop");
+      expect(config.description).toContain("Scoped cleanup");
+      expect(config.builtinToolNames).toEqual(["read", "bash", "edit", "grep", "find", "ls"]);
+      expect(config.builtinToolNames).toContain("edit");
+      expect(config.builtinToolNames).not.toContain("write");
+      expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+    });
+
     it("default agents are marked isDefault", () => {
       const cfg = getAgentConfig("general-purpose");
       expect(cfg?.isDefault).toBe(true);
@@ -145,7 +159,7 @@ describe("agent type registry", () => {
     // An explicit `false` here would silently win over the caller's `true` via `??` in
     // resolveAgentInvocationConfig, breaking documented Agent tool params.
     it("default agents do not lock strategy fields (run_in_background / inherit_context / isolated)", () => {
-      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "Plan", "Implement", "Review"]) {
+      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "Plan", "Implement", "Review", "Remove Slop"]) {
         const cfg = getAgentConfig(name);
         expect(cfg?.runInBackground, `${name}.runInBackground`).toBeUndefined();
         expect(cfg?.inheritContext, `${name}.inheritContext`).toBeUndefined();
@@ -161,6 +175,7 @@ describe("agent type registry", () => {
       expect(names).toContain("Plan");
       expect(names).toContain("Implement");
       expect(names).toContain("Review");
+      expect(names).toContain("Remove Slop");
     });
 
     it("BUILTIN_TOOL_NAMES includes all built-in tools", () => {
