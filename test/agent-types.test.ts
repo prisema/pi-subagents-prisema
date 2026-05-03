@@ -40,6 +40,7 @@ describe("agent type registry", () => {
     it("recognizes all default agent types", () => {
       expect(isValidType("general-purpose")).toBe(true);
       expect(isValidType("Explore")).toBe(true);
+      expect(isValidType("Web Research")).toBe(true);
       expect(isValidType("Systematic Debugging")).toBe(true);
       expect(isValidType("SEO GEO Agent Search")).toBe(true);
       expect(isValidType("Plan")).toBe(true);
@@ -62,6 +63,8 @@ describe("agent type registry", () => {
       expect(isValidType("explore")).toBe(true);
       expect(isValidType("EXPLORE")).toBe(true);
       expect(isValidType("General-Purpose")).toBe(true);
+      expect(isValidType("web research")).toBe(true);
+      expect(isValidType("web-research")).toBe(true);
       expect(isValidType("systematic debugging")).toBe(true);
       expect(isValidType("systematic-debugging")).toBe(true);
       expect(isValidType("seo_geo_agent_search")).toBe(true);
@@ -81,6 +84,8 @@ describe("agent type registry", () => {
       expect(resolveType("Explore")).toBe("Explore");
       expect(resolveType("explore")).toBe("Explore");
       expect(resolveType("GENERAL-PURPOSE")).toBe("general-purpose");
+      expect(resolveType("web research")).toBe("Web Research");
+      expect(resolveType("web-research")).toBe("Web Research");
       expect(resolveType("systematic debugging")).toBe("Systematic Debugging");
       expect(resolveType("systematic-debugging")).toBe("Systematic Debugging");
       expect(resolveType("seo_geo_agent_search")).toBe("SEO GEO Agent Search");
@@ -112,6 +117,15 @@ describe("agent type registry", () => {
     it("Explore has GPT Codex Spark model in config", () => {
       const cfg = getAgentConfig("Explore");
       expect(cfg?.model).toBe("gpt-5.3-codex-spark");
+    });
+
+    it("Web Research uses web access extensions and read-only built-ins", () => {
+      const config = getConfig("Web Research");
+      expect(config.description).toContain("External web research");
+      expect(config.builtinToolNames).toEqual(["read", "bash", "grep", "find", "ls"]);
+      expect(config.builtinToolNames).not.toContain("edit");
+      expect(config.builtinToolNames).not.toContain("write");
+      expect(config.extensions).toEqual(["web_search", "fetch_content", "get_search_content", "code_search"]);
     });
 
     it("Systematic Debugging is a read-only root-cause investigator", () => {
@@ -173,7 +187,7 @@ describe("agent type registry", () => {
     // An explicit `false` here would silently win over the caller's `true` via `??` in
     // resolveAgentInvocationConfig, breaking documented Agent tool params.
     it("default agents do not lock strategy fields (run_in_background / inherit_context / isolated)", () => {
-      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "SEO GEO Agent Search", "Plan", "Implement", "Review", "Remove Slop"]) {
+      for (const name of ["general-purpose", "Explore", "Web Research", "Systematic Debugging", "SEO GEO Agent Search", "Plan", "Implement", "Review", "Remove Slop"]) {
         const cfg = getAgentConfig(name);
         expect(cfg?.runInBackground, `${name}.runInBackground`).toBeUndefined();
         expect(cfg?.inheritContext, `${name}.inheritContext`).toBeUndefined();
@@ -185,6 +199,7 @@ describe("agent type registry", () => {
       const names = getDefaultAgentNames();
       expect(names).toContain("general-purpose");
       expect(names).toContain("Explore");
+      expect(names).toContain("Web Research");
       expect(names).toContain("Systematic Debugging");
       expect(names).toContain("SEO GEO Agent Search");
       expect(names).toContain("Plan");

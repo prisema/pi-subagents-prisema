@@ -51,6 +51,17 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("Do not depend on codedb or qmd");
   });
 
+  it("Web Research prompt returns source-backed external context", () => {
+    const config = getDefaultConfig("Web Research");
+    const prompt = buildAgentPrompt(config, "/workspace", env);
+    expect(prompt).toContain("WEB RESEARCH AGENT");
+    expect(prompt).toContain("Web Context Pack");
+    expect(prompt).toContain("Use web_search for broad research");
+    expect(prompt).toContain("Use fetch_content for user-provided URLs");
+    expect(prompt).toContain("Use code_search for programming/API/library examples");
+    expect(prompt).toContain("Do not implement");
+  });
+
   it("Systematic Debugging prompt requires root cause before fixes", () => {
     const config = getDefaultConfig("Systematic Debugging");
     const prompt = buildAgentPrompt(config, "/workspace", env);
