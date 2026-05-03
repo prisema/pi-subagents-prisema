@@ -40,6 +40,7 @@ describe("agent type registry", () => {
     it("recognizes all default agent types", () => {
       expect(isValidType("general-purpose")).toBe(true);
       expect(isValidType("Explore")).toBe(true);
+      expect(isValidType("Systematic Debugging")).toBe(true);
       expect(isValidType("Plan")).toBe(true);
       expect(isValidType("Implement")).toBe(true);
       expect(isValidType("Review")).toBe(true);
@@ -59,6 +60,8 @@ describe("agent type registry", () => {
       expect(isValidType("explore")).toBe(true);
       expect(isValidType("EXPLORE")).toBe(true);
       expect(isValidType("General-Purpose")).toBe(true);
+      expect(isValidType("systematic debugging")).toBe(true);
+      expect(isValidType("systematic-debugging")).toBe(true);
       expect(isValidType("plan")).toBe(true);
     });
 
@@ -72,6 +75,8 @@ describe("agent type registry", () => {
       expect(resolveType("Explore")).toBe("Explore");
       expect(resolveType("explore")).toBe("Explore");
       expect(resolveType("GENERAL-PURPOSE")).toBe("general-purpose");
+      expect(resolveType("systematic debugging")).toBe("Systematic Debugging");
+      expect(resolveType("systematic-debugging")).toBe("Systematic Debugging");
       expect(resolveType("implement")).toBe("Implement");
       expect(resolveType("review")).toBe("Review");
       expect(resolveType("nonexistent")).toBeUndefined();
@@ -97,6 +102,15 @@ describe("agent type registry", () => {
     it("Explore has GPT Codex Spark model in config", () => {
       const cfg = getAgentConfig("Explore");
       expect(cfg?.model).toBe("gpt-5.3-codex-spark");
+    });
+
+    it("Systematic Debugging is a read-only root-cause investigator", () => {
+      const config = getConfig("Systematic Debugging");
+      expect(config.description).toContain("Root-cause debugging");
+      expect(config.builtinToolNames).toEqual(["read", "bash", "grep", "find", "ls"]);
+      expect(config.builtinToolNames).not.toContain("edit");
+      expect(config.builtinToolNames).not.toContain("write");
+      expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
     });
 
     it("Plan can write only planning artifacts", () => {
@@ -131,7 +145,7 @@ describe("agent type registry", () => {
     // An explicit `false` here would silently win over the caller's `true` via `??` in
     // resolveAgentInvocationConfig, breaking documented Agent tool params.
     it("default agents do not lock strategy fields (run_in_background / inherit_context / isolated)", () => {
-      for (const name of ["general-purpose", "Explore", "Plan", "Implement", "Review"]) {
+      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "Plan", "Implement", "Review"]) {
         const cfg = getAgentConfig(name);
         expect(cfg?.runInBackground, `${name}.runInBackground`).toBeUndefined();
         expect(cfg?.inheritContext, `${name}.inheritContext`).toBeUndefined();
@@ -143,6 +157,7 @@ describe("agent type registry", () => {
       const names = getDefaultAgentNames();
       expect(names).toContain("general-purpose");
       expect(names).toContain("Explore");
+      expect(names).toContain("Systematic Debugging");
       expect(names).toContain("Plan");
       expect(names).toContain("Implement");
       expect(names).toContain("Review");

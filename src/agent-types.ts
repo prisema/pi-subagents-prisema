@@ -33,13 +33,25 @@ export function registerAgents(userAgents: Map<string, AgentConfig>): void {
   }
 }
 
+/** Normalize agent names for forgiving user input (`Systematic Debugging`, `systematic-debugging`, etc.). */
+function normalizeAgentName(name: string): string {
+  return name.toLowerCase().replace(/[\s_-]+/g, "");
+}
+
 /** Case-insensitive key resolution. */
 function resolveKey(name: string): string | undefined {
   if (agents.has(name)) return name;
+
   const lower = name.toLowerCase();
   for (const key of agents.keys()) {
     if (key.toLowerCase() === lower) return key;
   }
+
+  const normalized = normalizeAgentName(name);
+  for (const key of agents.keys()) {
+    if (normalizeAgentName(key) === normalized) return key;
+  }
+
   return undefined;
 }
 

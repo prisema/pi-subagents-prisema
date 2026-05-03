@@ -576,6 +576,7 @@ ${typeListText}
 Guidelines:
 - For parallel work, use run_in_background: true on each agent. Foreground calls run sequentially — only one executes at a time.
 - Use Explore for codebase searches and code understanding.
+- Use Systematic Debugging for bugs, test failures, build failures, and unexpected behavior before proposing fixes.
 - Use Plan for Taskdone-ready planning artifacts and approval-gated implementation plans.
 - Use Implement for scoped TDD implementation work.
 - Use Review for evidence-driven verification and code review.

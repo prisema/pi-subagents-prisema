@@ -51,6 +51,16 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("Do not depend on codedb or qmd");
   });
 
+  it("Systematic Debugging prompt requires root cause before fixes", () => {
+    const config = getDefaultConfig("Systematic Debugging");
+    const prompt = buildAgentPrompt(config, "/workspace", env);
+    expect(prompt).toContain("SYSTEMATIC DEBUGGING AGENT");
+    expect(prompt).toContain("No fixes without root-cause investigation first");
+    expect(prompt).toContain("Root Cause Report");
+    expect(prompt).toContain("Do not modify files");
+    expect(prompt).toContain("fffind");
+  });
+
   it("Plan prompt can write Taskdone planning artifacts only", () => {
     const config = getDefaultConfig("Plan");
     const prompt = buildAgentPrompt(config, "/workspace", env);
