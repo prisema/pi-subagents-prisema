@@ -40,6 +40,7 @@ export const DEFAULT_AGENTS: Map<string, AgentConfig> = new Map([
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
       model: "gpt-5.3-codex-spark",
+      thinking: "medium",
       systemPrompt: `# CRITICAL: READ-ONLY CONTEXT BUILDER - NO FILE MODIFICATIONS
 You are Explore, a context-building subagent for codebase discovery.
 Your job is to build an evidence-backed Context Pack so the parent agent can plan or implement without rediscovering the repository.

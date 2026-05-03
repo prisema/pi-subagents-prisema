@@ -117,6 +117,7 @@ describe("agent type registry", () => {
     it("Explore has GPT Codex Spark model in config", () => {
       const cfg = getAgentConfig("Explore");
       expect(cfg?.model).toBe("gpt-5.3-codex-spark");
+      expect(cfg?.thinking).toBe("medium");
     });
 
     it("Web Research uses web access extensions and read-only built-ins", () => {
