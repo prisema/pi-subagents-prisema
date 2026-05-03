@@ -11,7 +11,7 @@ export type { ThinkingLevel };
 export type SubagentType = string;
 
 /** Names of the embedded default agents. */
-export const DEFAULT_AGENT_NAMES = ["general-purpose", "Explore", "Systematic Debugging", "Plan", "Implement", "Review", "Remove Slop"] as const;
+export const DEFAULT_AGENT_NAMES = ["general-purpose", "Explore", "Systematic Debugging", "SEO GEO Agent Search", "Plan", "Implement", "Review", "Remove Slop"] as const;
 
 /** Memory scope for persistent agent memory. */
 export type MemoryScope = "user" | "project" | "local";

@@ -61,6 +61,16 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("fffind");
   });
 
+  it("SEO GEO Agent Search prompt covers marketing and AI-ready discovery", () => {
+    const config = getDefaultConfig("seo_geo_agent_search");
+    const prompt = buildAgentPrompt(config, "/workspace", env);
+    expect(prompt).toContain("MARKETING SEO/GEO/AGENT SEARCH SPECIALIST");
+    expect(prompt).toContain("AI-ready public sites");
+    expect(prompt).toContain("llms.txt");
+    expect(prompt).toContain("Never claim SEO/GEO/AI Search ranking guarantees");
+    expect(prompt).toContain("P0/P1/P2 Findings");
+  });
+
   it("Plan prompt can write Taskdone planning artifacts only", () => {
     const config = getDefaultConfig("Plan");
     const prompt = buildAgentPrompt(config, "/workspace", env);

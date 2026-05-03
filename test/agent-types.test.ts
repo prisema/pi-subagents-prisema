@@ -41,6 +41,7 @@ describe("agent type registry", () => {
       expect(isValidType("general-purpose")).toBe(true);
       expect(isValidType("Explore")).toBe(true);
       expect(isValidType("Systematic Debugging")).toBe(true);
+      expect(isValidType("SEO GEO Agent Search")).toBe(true);
       expect(isValidType("Plan")).toBe(true);
       expect(isValidType("Implement")).toBe(true);
       expect(isValidType("Review")).toBe(true);
@@ -63,6 +64,8 @@ describe("agent type registry", () => {
       expect(isValidType("General-Purpose")).toBe(true);
       expect(isValidType("systematic debugging")).toBe(true);
       expect(isValidType("systematic-debugging")).toBe(true);
+      expect(isValidType("seo_geo_agent_search")).toBe(true);
+      expect(isValidType("seo-geo-agent-search")).toBe(true);
       expect(isValidType("plan")).toBe(true);
       expect(isValidType("remove slop")).toBe(true);
       expect(isValidType("remove-slop")).toBe(true);
@@ -80,6 +83,8 @@ describe("agent type registry", () => {
       expect(resolveType("GENERAL-PURPOSE")).toBe("general-purpose");
       expect(resolveType("systematic debugging")).toBe("Systematic Debugging");
       expect(resolveType("systematic-debugging")).toBe("Systematic Debugging");
+      expect(resolveType("seo_geo_agent_search")).toBe("SEO GEO Agent Search");
+      expect(resolveType("seo-geo-agent-search")).toBe("SEO GEO Agent Search");
       expect(resolveType("implement")).toBe("Implement");
       expect(resolveType("review")).toBe("Review");
       expect(resolveType("remove slop")).toBe("Remove Slop");
@@ -116,6 +121,15 @@ describe("agent type registry", () => {
       expect(config.builtinToolNames).not.toContain("edit");
       expect(config.builtinToolNames).not.toContain("write");
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+    });
+
+    it("SEO GEO Agent Search is a marketing implementation specialist", () => {
+      const config = getConfig("seo_geo_agent_search");
+      expect(config.displayName).toBe("SEO/GEO");
+      expect(config.description).toContain("Marketing");
+      expect(config.builtinToolNames).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
+      expect(config.extensions).toBe(true);
+      expect(config.skills).toBe(true);
     });
 
     it("Plan can write only planning artifacts", () => {
@@ -159,7 +173,7 @@ describe("agent type registry", () => {
     // An explicit `false` here would silently win over the caller's `true` via `??` in
     // resolveAgentInvocationConfig, breaking documented Agent tool params.
     it("default agents do not lock strategy fields (run_in_background / inherit_context / isolated)", () => {
-      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "Plan", "Implement", "Review", "Remove Slop"]) {
+      for (const name of ["general-purpose", "Explore", "Systematic Debugging", "SEO GEO Agent Search", "Plan", "Implement", "Review", "Remove Slop"]) {
         const cfg = getAgentConfig(name);
         expect(cfg?.runInBackground, `${name}.runInBackground`).toBeUndefined();
         expect(cfg?.inheritContext, `${name}.inheritContext`).toBeUndefined();
@@ -172,6 +186,7 @@ describe("agent type registry", () => {
       expect(names).toContain("general-purpose");
       expect(names).toContain("Explore");
       expect(names).toContain("Systematic Debugging");
+      expect(names).toContain("SEO GEO Agent Search");
       expect(names).toContain("Plan");
       expect(names).toContain("Implement");
       expect(names).toContain("Review");
