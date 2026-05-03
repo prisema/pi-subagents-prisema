@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3-prisema.6] - 2026-05-03
+
+### Added
+- `SEO GEO Agent Search` default subagent for marketing, SEO/GEO, AI Search, Agent Search, `llms.txt`, schema, robots, and AI-ready site work.
+- `Web Research` default subagent using Pi web access tools for source-backed external/current Web Context Packs.
+- Prisema Brainstorming Gate in `Plan` for ambiguous creative/product work before implementation.
+
+### Changed
+- Removed tracked project-local `.pi/agents/auditor.md`; Prisema agent guidance is centralized in `pi-extension-prisema`.
+- Updated Agent tool guidance and docs for the expanded default subagent set.
+
 ## [0.5.2] - 2026-03-26
 
 ### Fixed
