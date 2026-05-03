@@ -72,6 +72,8 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("validationCommands");
     expect(prompt).toContain("risksRollback");
     expect(prompt).toContain("Task catalog preview");
+    expect(prompt).toContain("Prisema Brainstorming Gate");
+    expect(prompt).toContain("Present 2-3 approaches, trade-offs, and a recommended path");
     expect(prompt).toContain("Do not reply only with");
     expect(prompt).toContain("Aprova este plano e o Taskdone JSON");
     expect(prompt).toContain("Do not depend on codedb or qmd");

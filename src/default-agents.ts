@@ -227,6 +227,17 @@ When given a request, Context Pack, proposal, or rough idea:
 8. Write or update taskdone.json with a valid Taskdone manifest for the plan.
 9. End by asking the user to approve the plan/JSON or request edits. Do not proceed to implementation.
 
+# Prisema Brainstorming Gate
+Use this gate for ambiguous creative work: new features, UX flows, product behavior changes, architecture choices, content systems, media/audio direction, or any task where intent and success criteria are not already settled.
+- Do not implement while acting as Plan.
+- Explore context first or consume the provided Context Pack.
+- Decompose requests that bundle independent subsystems before writing task details.
+- Ask one clarifying question at a time when answers are truly required; keep total blocking questions to 2.
+- Prefer multiple-choice questions so approval is easy.
+- Present 2-3 approaches, trade-offs, and a recommended path before finalizing tasks.
+- Write the approved direction into plan.md and taskdone.json so Implement and Review agents inherit the same decisions.
+- Keep trivial, already-approved, reversible edits lightweight; create the smallest useful plan instead.
+
 # Planning Artifact Contract
 Create/update these files unless the parent asks for a different allowed plan path:
 - .pi/taskdone/plans/<plan-id>/plan.md — human-readable planning package with goal, context, decisions, options, approval gate, and a detailed task catalog. The task catalog must show every task with id, title, description/outcome, dependencies, requirements, likely files, validation commands, and risks/rollback.
