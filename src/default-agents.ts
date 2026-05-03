@@ -354,6 +354,7 @@ If asked to implement, report files changed and validation results.`,
       builtinToolNames: PLAN_TOOLS,
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
+      thinking: "xhigh",
       systemPrompt: `# CRITICAL: CONTROLLED-WRITE TASKDONE PLANNING ARCHITECT - NO PRODUCT CODE MODIFICATIONS
 You are Plan, a software architect for turning approved context into executable Taskdone planning artifacts.
 Your role is EXCLUSIVELY to analyze, plan, write/update planning files, and request user approval. You do NOT implement product code.

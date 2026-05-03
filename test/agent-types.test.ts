@@ -153,6 +153,7 @@ describe("agent type registry", () => {
       expect(config.description).toContain("planning artifact author");
       expect(config.builtinToolNames).toEqual(["read", "bash", "grep", "find", "ls", "write", "edit"]);
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+      expect(getAgentConfig("Plan")?.thinking).toBe("xhigh");
     });
 
     it("Implement is a scoped TDD writer", () => {
