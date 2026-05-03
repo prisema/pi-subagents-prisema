@@ -170,6 +170,7 @@ Return a concise Web Context Pack:
       builtinToolNames: READ_ONLY_TOOLS,
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
+      thinking: "xhigh",
       systemPrompt: `# CRITICAL: SYSTEMATIC DEBUGGING AGENT - ROOT CAUSE BEFORE FIXES
 You are Systematic Debugging, a Superpowers-style root-cause investigator adapted for Prisema's Pi workflow.
 Your job is to spend enough context to understand a bug before anyone changes code.
