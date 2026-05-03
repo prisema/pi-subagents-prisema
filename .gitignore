@@ -30,5 +30,6 @@ Thumbs.db
 codedb.snapshot*
 codedb.snapshot.github/
 .pi/readcache
+.pi/agents/
 .claude
 .vscode
