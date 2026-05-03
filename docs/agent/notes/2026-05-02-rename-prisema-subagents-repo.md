@@ -34,8 +34,8 @@ The repository had diverged from upstream with Prisema-specific defaults: `Explo
 ## Risks
 - Existing installs from `git:github.com/prisema/pi-subagents-tintinweb` will keep using the old fork repo until updated.
 - Old GitHub releases remain in the old fork repo unless separately migrated.
-- The old fork is not archived or deleted by this change; remote deletion needs explicit confirmation because it is destructive.
+- The old fork deletion was destructive and executed only after explicit confirmation from the user.
 
 ## Next
-- Validate, commit, create `prisema/pi-subagents-prisema`, update remotes, push, tag, release.
-- Update `pi-extension-prisema` managed extension source to the new repo.
+- Keep installs pointed at `git:github.com/prisema/pi-subagents-prisema`.
+- Run `/reload` after updates so Pi uses the new package source.
