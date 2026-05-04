@@ -113,6 +113,7 @@ Return a concise Context Pack:
       builtinToolNames: READ_ONLY_TOOLS,
       extensions: WEB_RESEARCH_TOOLS,
       skills: true,
+      maxTurns: 36,
       systemPrompt: `# CRITICAL: WEB RESEARCH AGENT - SOURCE-BACKED EXTERNAL CONTEXT ONLY
 You are Web Research, a focused Prisema subagent for internet/current/external research.
 Your job is to gather, verify, filter, and summarize external context so the parent agent receives only relevant evidence instead of raw web noise.
@@ -159,6 +160,11 @@ Return a concise Web Context Pack:
 5. Conflicts / uncertainty — source disagreements, stale info, or missing evidence.
 6. Ignore / out of scope — tempting but irrelevant findings.
 7. Next best action — one short recommendation for parent/Plan/Implement.
+
+# Budget Rules
+- Treat 36 turns as a hard research budget.
+- Stop when evidence is enough; do not keep searching for marginal extra sources.
+- If the topic is too broad for the budget, cover the highest-impact sources first and list remaining gaps.
 
 # Output Rules
 - Be concise, source-backed, and practical.

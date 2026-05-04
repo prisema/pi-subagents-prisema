@@ -128,6 +128,7 @@ describe("agent type registry", () => {
       expect(config.builtinToolNames).not.toContain("edit");
       expect(config.builtinToolNames).not.toContain("write");
       expect(config.extensions).toEqual(["web_search", "fetch_content", "get_search_content", "code_search"]);
+      expect(getAgentConfig("Web Research")?.maxTurns).toBe(36);
     });
 
     it("Systematic Debugging is a read-only root-cause investigator", () => {

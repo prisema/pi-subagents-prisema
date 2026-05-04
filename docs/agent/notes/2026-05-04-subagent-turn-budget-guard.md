@@ -11,14 +11,15 @@ Recent Vindula `Explore`-style mapping runs aborted after ~60 tool uses and ~2M 
 - The runner restores the prior active tool set after that prompt finishes, so later `resume` calls are not permanently tool-less.
 - Kept the existing grace-turn hard abort as a fallback if the model still fails to answer.
 - Added best-effort recovery output for empty results: if a run errors or aborts without final assistant text, the record now surfaces the error reason plus the latest tool-result evidence instead of `No output.`
-- Increased embedded `Explore` to `maxTurns: 36` and prompt budget rules so local context mapping has more room while still returning a partial Context Pack rather than chasing every branch indefinitely.
-- Left broader global defaults unchanged; projects can still eject/override `Explore` if they need a different budget.
+- Increased embedded `Explore` and `Web Research` to `maxTurns: 36` with prompt budget rules so mapping/research has more room while still returning a partial Context Pack rather than chasing every branch indefinitely.
+- Left broader global defaults unchanged; projects can still eject/override `Explore` or `Web Research` if they need a different budget.
 
 ## Commands run
 - `npm run test -- --run test/agent-runner.test.ts test/agent-manager.test.ts test/agent-types.test.ts`
 - `npm run test`
 - `npm run typecheck`
 - `./node_modules/.bin/biome check src/ test/`
+- `git diff --check`
 - `npm run lint` (failed in the harness with `ESLint output (JSON parse failed: EOF while parsing a value at line 1 column 0)`; direct Biome command passed)
 
 ## Files changed
@@ -35,12 +36,12 @@ Recent Vindula `Explore`-style mapping runs aborted after ~60 tool uses and ~2M 
 ## Tests
 - Added coverage that `runAgent` disables tools and steers at the soft turn limit.
 - Added coverage for best-effort recovery output from recent tool evidence.
-- Added registry coverage for the `Explore` 36-turn cap.
+- Added registry coverage for the `Explore` and `Web Research` 36-turn caps.
 
 ## Risks
-- `Explore` may still stop before fully mapping very broad prompts and report unknowns/follow-ups.
+- `Explore`/`Web Research` may still stop before fully mapping very broad prompts and report unknowns/follow-ups.
 - Best-effort recovery is not a real final conclusion; it is a safety net that preserves evidence and the error reason when the model/transport never produced final text.
 - Disabling all tools at the soft limit may surprise custom agents that expect to use tools during grace turns. The intended trade-off is lower cost and higher chance of a final answer.
 
 ## Next
-Reload Pi/extensions before testing. Run a broad `Explore` smoke task and confirm it wraps as `steered` with a Context Pack instead of aborting with `No output`.
+Reload Pi/extensions before testing. Run broad `Explore` and `Web Research` smoke tasks and confirm they wrap as `steered` with Context Packs instead of aborting with `No output`.
