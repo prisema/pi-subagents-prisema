@@ -133,12 +133,14 @@ describe("agent type registry", () => {
 
     it("Systematic Debugging is a read-only root-cause investigator", () => {
       const config = getConfig("Systematic Debugging");
+      const agentConfig = getAgentConfig("Systematic Debugging");
       expect(config.description).toContain("Root-cause debugging");
       expect(config.builtinToolNames).toEqual(["read", "bash", "grep", "find", "ls"]);
       expect(config.builtinToolNames).not.toContain("edit");
       expect(config.builtinToolNames).not.toContain("write");
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
-      expect(getAgentConfig("Systematic Debugging")?.thinking).toBe("xhigh");
+      expect(agentConfig?.thinking).toBe("xhigh");
+      expect(agentConfig?.maxTurns).toBe(48);
     });
 
     it("SEO GEO Agent Search is a marketing implementation specialist", () => {
@@ -148,14 +150,17 @@ describe("agent type registry", () => {
       expect(config.builtinToolNames).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
       expect(config.extensions).toBe(true);
       expect(config.skills).toBe(true);
+      expect(getAgentConfig("SEO GEO Agent Search")?.maxTurns).toBe(40);
     });
 
     it("Plan can write only planning artifacts", () => {
       const config = getConfig("Plan");
+      const agentConfig = getAgentConfig("Plan");
       expect(config.description).toContain("planning artifact author");
       expect(config.builtinToolNames).toEqual(["read", "bash", "grep", "find", "ls", "write", "edit"]);
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
-      expect(getAgentConfig("Plan")?.thinking).toBe("xhigh");
+      expect(agentConfig?.thinking).toBe("xhigh");
+      expect(agentConfig?.maxTurns).toBe(48);
     });
 
     it("Implement is a scoped TDD writer", () => {
@@ -163,6 +168,7 @@ describe("agent type registry", () => {
       expect(config.description).toContain("TDD implementation");
       expect(config.builtinToolNames).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+      expect(getAgentConfig("Implement")?.maxTurns).toBe(40);
     });
 
     it("Review is read-only and evidence-driven", () => {
@@ -172,6 +178,7 @@ describe("agent type registry", () => {
       expect(config.builtinToolNames).not.toContain("edit");
       expect(config.builtinToolNames).not.toContain("write");
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+      expect(getAgentConfig("Review")?.maxTurns).toBe(32);
     });
 
     it("Remove Slop can edit touched scope but cannot write new files", () => {

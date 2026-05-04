@@ -49,6 +49,8 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("ffgrep");
     expect(prompt).toContain("fff-multi-grep");
     expect(prompt).toContain("Do not depend on codedb or qmd");
+    expect(prompt).toContain("not file-content reading");
+    expect(prompt).not.toContain("find, cat, head, tail");
   });
 
   it("Web Research prompt returns source-backed external context", () => {
@@ -80,6 +82,7 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("llms.txt");
     expect(prompt).toContain("Never claim SEO/GEO/AI Search ranking guarantees");
     expect(prompt).toContain("P0/P1/P2 Findings");
+    expect(prompt).toContain("Do not stage, commit, push, or create/switch branches");
   });
 
   it("Plan prompt can write Taskdone planning artifacts only", () => {
@@ -107,6 +110,7 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("default execution arm for scoped code changes");
     expect(prompt).toContain("no production code for a behavior change before a focused failing test");
     expect(prompt).toContain("RED: add or identify a focused failing test");
+    expect(prompt).toContain("Staging, committing, or pushing changes unless explicitly assigned by the parent");
     expect(prompt).toContain("completion marker");
   });
 
@@ -115,6 +119,7 @@ describe("buildAgentPrompt", () => {
     const prompt = buildAgentPrompt(config, "/workspace", env);
     expect(prompt).toContain("EVIDENCE-DRIVEN REVIEW AGENT");
     expect(prompt).toContain("Acceptance criteria are the checklist");
+    expect(prompt).toContain("normal test/build cache artifacts");
     expect(prompt).toContain("Never use edit/write");
   });
 
@@ -126,6 +131,14 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("Never use write");
     expect(prompt).toContain("git diff");
     expect(prompt).toContain("edit for precise changes");
+  });
+
+  it("specialized default agents answer in the user's language", () => {
+    for (const name of ["Explore", "Web Research", "Systematic Debugging", "SEO GEO Agent Search", "Plan", "Implement", "Review", "Remove Slop"]) {
+      const config = getDefaultConfig(name);
+      const prompt = buildAgentPrompt(config, "/workspace", env);
+      expect(prompt, name).toContain("Respond in the user's language");
+    }
   });
 
   it("general-purpose uses append mode (parent twin)", () => {

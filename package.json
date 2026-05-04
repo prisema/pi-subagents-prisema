@@ -1,6 +1,6 @@
 {
   "name": "@prisema/pi-subagents-prisema",
-  "version": "0.6.3-prisema.6",
+  "version": "0.6.3-prisema.7",
   "description": "Prisema pi extension for autonomous sub-agents, Taskdone planning roles, TDD implementation, and evidence-driven review.",
   "author": "Prisema",
   "license": "MIT",

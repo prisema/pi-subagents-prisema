@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3-prisema.7] - 2026-05-04
+
+### Changed
+- Added explicit role-specific turn caps for `Systematic Debugging`, `SEO GEO Agent Search`, `Plan`, `Implement`, and `Review`.
+- Tightened default subagent prompts so specialized agents respond in the user's language by default.
+- Clarified `Explore` read-only tool guidance to use the `read` tool for file contents instead of `cat`/`head`/`tail`.
+- Clarified `Review` may run validation commands that create normal test/build cache artifacts, without intentionally editing or cleaning files.
+
+### Fixed
+- `Implement` and `SEO GEO Agent Search` now explicitly forbid staging, committing, pushing, or branch switching unless the user/parent explicitly assigns that action.
+
 ## [0.6.3-prisema.6] - 2026-05-03
 
 ### Added
