@@ -106,7 +106,7 @@ Group completions render each agent as a separate block. The LLM receives struct
 | Type | Tools | Model | Prompt Mode | Description |
 |------|-------|-------|-------------|-------------|
 | `general-purpose` | all 7 | inherit | `append` (parent twin) | Inherits the parent's full system prompt — same rules, CLAUDE.md, project conventions |
-| `Explore` | read, bash, grep, find, ls + FFF search tools | gpt-5.3-codex-spark (falls back to inherit) | `replace` (standalone) | Fast context-building for codebase discovery (read-only, 24-turn cap) |
+| `Explore` | read, bash, grep, find, ls + FFF search tools | gpt-5.3-codex-spark (falls back to inherit) | `replace` (standalone) | Fast context-building for codebase discovery (read-only, 36-turn cap) |
 | `Web Research` | read, bash, grep, find, ls + web research tools | inherit | `replace` (standalone) | Source-backed external/web research and Web Context Packs (read-only) |
 | `Systematic Debugging` | read, bash, grep, find, ls + FFF search tools | inherit | `replace` (standalone) | Superpowers-style root-cause investigator for bugs/failures before fixes (read-only) |
 | `SEO GEO Agent Search` | read, bash, edit, write, grep, find, ls + all extension tools | gpt-5.4 (falls back to inherit) | `replace` (standalone) | Marketing, SEO, GEO, AI Search, Agent Search, and AI-ready site specialist |
@@ -255,7 +255,7 @@ Instead of hard-aborting at the turn limit, agents get a graceful shutdown:
 2. Up to 5 grace turns to finish cleanly without more tool calls.
 3. Hard abort only after the grace period.
 
-`Explore` has an embedded 24-turn cap so broad mapping jobs return an incomplete-but-usable Context Pack instead of continuing expensive searches. Override by ejecting/customizing `Explore` if a project needs a different budget.
+`Explore` has an embedded 36-turn cap so broad mapping jobs return an incomplete-but-usable Context Pack instead of continuing expensive searches. Override by ejecting/customizing `Explore` if a project needs a different budget.
 
 If a run ends without final assistant text (for example due to a transport/WebSocket failure), notifications and `get_subagent_result` surface a best-effort recovery block with the error reason and latest tool-result evidence instead of plain `No output.`
 

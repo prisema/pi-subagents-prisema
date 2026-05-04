@@ -11,7 +11,7 @@ Recent Vindula `Explore`-style mapping runs aborted after ~60 tool uses and ~2M 
 - The runner restores the prior active tool set after that prompt finishes, so later `resume` calls are not permanently tool-less.
 - Kept the existing grace-turn hard abort as a fallback if the model still fails to answer.
 - Added best-effort recovery output for empty results: if a run errors or aborts without final assistant text, the record now surfaces the error reason plus the latest tool-result evidence instead of `No output.`
-- Increased embedded `Explore` to `maxTurns: 24` and prompt budget rules so local context mapping has more room while still returning a partial Context Pack rather than chasing every branch indefinitely.
+- Increased embedded `Explore` to `maxTurns: 36` and prompt budget rules so local context mapping has more room while still returning a partial Context Pack rather than chasing every branch indefinitely.
 - Left broader global defaults unchanged; projects can still eject/override `Explore` if they need a different budget.
 
 ## Commands run
@@ -35,7 +35,7 @@ Recent Vindula `Explore`-style mapping runs aborted after ~60 tool uses and ~2M 
 ## Tests
 - Added coverage that `runAgent` disables tools and steers at the soft turn limit.
 - Added coverage for best-effort recovery output from recent tool evidence.
-- Added registry coverage for the `Explore` 24-turn cap.
+- Added registry coverage for the `Explore` 36-turn cap.
 
 ## Risks
 - `Explore` may still stop before fully mapping very broad prompts and report unknowns/follow-ups.

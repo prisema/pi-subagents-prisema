@@ -41,7 +41,7 @@ export const DEFAULT_AGENTS: Map<string, AgentConfig> = new Map([
       skills: true,
       model: "gpt-5.3-codex-spark",
       thinking: "medium",
-      maxTurns: 24,
+      maxTurns: 36,
       systemPrompt: `# CRITICAL: READ-ONLY CONTEXT BUILDER - NO FILE MODIFICATIONS
 You are Explore, a context-building subagent for codebase discovery.
 Your job is to build an evidence-backed Context Pack so the parent agent can plan or implement without rediscovering the repository.
@@ -90,7 +90,7 @@ Return a concise Context Pack:
 8. Next best action — one short recommendation for the parent.
 
 # Budget Rules
-- Treat 24 turns as a hard exploration budget.
+- Treat 36 turns as a hard exploration budget.
 - Do not chase every branch. Gather enough evidence, then return the Context Pack.
 - If the task is too broad for the budget, map the highest-risk area first and list the rest as unknowns/follow-ups.
 
