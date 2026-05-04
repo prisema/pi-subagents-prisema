@@ -104,6 +104,8 @@ describe("buildAgentPrompt", () => {
     const config = getDefaultConfig("Implement");
     const prompt = buildAgentPrompt(config, "/workspace", env);
     expect(prompt).toContain("SCOPED TDD IMPLEMENTATION AGENT");
+    expect(prompt).toContain("default execution arm for scoped code changes");
+    expect(prompt).toContain("no production code for a behavior change before a focused failing test");
     expect(prompt).toContain("RED: add or identify a focused failing test");
     expect(prompt).toContain("completion marker");
   });
