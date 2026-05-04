@@ -106,7 +106,7 @@ Group completions render each agent as a separate block. The LLM receives struct
 | Type | Tools | Model | Prompt Mode | Description |
 |------|-------|-------|-------------|-------------|
 | `general-purpose` | all 7 | inherit | `append` (parent twin) | Inherits the parent's full system prompt — same rules, CLAUDE.md, project conventions |
-| `Explore` | read, bash, grep, find, ls + FFF search tools | gpt-5.3-codex-spark (falls back to inherit) | `replace` (standalone) | Fast context-building for codebase discovery (read-only) |
+| `Explore` | read, bash, grep, find, ls + FFF search tools | gpt-5.3-codex-spark (falls back to inherit) | `replace` (standalone) | Fast context-building for codebase discovery (read-only, 12-turn cap) |
 | `Web Research` | read, bash, grep, find, ls + web research tools | inherit | `replace` (standalone) | Source-backed external/web research and Web Context Packs (read-only) |
 | `Systematic Debugging` | read, bash, grep, find, ls + FFF search tools | inherit | `replace` (standalone) | Superpowers-style root-cause investigator for bugs/failures before fixes (read-only) |
 | `SEO GEO Agent Search` | read, bash, edit, write, grep, find, ls + all extension tools | gpt-5.4 (falls back to inherit) | `replace` (standalone) | Marketing, SEO, GEO, AI Search, Agent Search, and AI-ready site specialist |
@@ -251,9 +251,11 @@ Settings                                    ← max concurrency, max turns, grac
 
 Instead of hard-aborting at the turn limit, agents get a graceful shutdown:
 
-1. At `max_turns` — steering message: *"Wrap up immediately — provide your final answer now."*
-2. Up to 5 grace turns to finish cleanly
-3. Hard abort only after the grace period
+1. At `max_turns` — active tools are disabled and a steering message tells the agent to return a final answer from evidence already gathered.
+2. Up to 5 grace turns to finish cleanly without more tool calls.
+3. Hard abort only after the grace period.
+
+`Explore` has an embedded 12-turn cap so broad mapping jobs return an incomplete-but-usable Context Pack instead of continuing expensive searches. Override by ejecting/customizing `Explore` if a project needs a different budget.
 
 | Status | Meaning | Icon |
 |--------|---------|------|

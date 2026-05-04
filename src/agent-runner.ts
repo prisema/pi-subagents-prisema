@@ -314,6 +314,24 @@ export async function runAgent(
   const maxTurns = normalizeMaxTurns(options.maxTurns ?? agentConfig?.maxTurns ?? defaultMaxTurns);
   let softLimitReached = false;
   let aborted = false;
+  let activeToolsBeforeTurnLimit: string[] | undefined;
+
+  const requestFinalAnswer = () => {
+    softLimitReached = true;
+    // Cost guard: once the turn budget is spent, remove tools so the next
+    // assistant turn must summarize evidence instead of spending more on reads/searches.
+    try {
+      activeToolsBeforeTurnLimit = session.getActiveToolNames();
+      session.setActiveToolsByName([]);
+    } catch {
+      // Keep steering even if a runtime cannot disable tools.
+    }
+    session.steer(
+      "You have reached your turn limit. Do not call tools again. " +
+      "Return your final answer now using only evidence gathered so far. " +
+      "If incomplete, list unknowns and the next best action.",
+    );
+  };
 
   let currentMessageText = "";
   const unsubTurns = session.subscribe((event: AgentSessionEvent) => {
@@ -322,8 +340,7 @@ export async function runAgent(
       options.onTurnEnd?.(turnCount);
       if (maxTurns != null) {
         if (!softLimitReached && turnCount >= maxTurns) {
-          softLimitReached = true;
-          session.steer("You have reached your turn limit. Wrap up immediately — provide your final answer now.");
+          requestFinalAnswer();
         } else if (softLimitReached && turnCount >= maxTurns + graceTurns) {
           aborted = true;
           session.abort();
@@ -363,6 +380,13 @@ export async function runAgent(
     unsubTurns();
     collector.unsubscribe();
     cleanupAbort();
+    if (activeToolsBeforeTurnLimit) {
+      try {
+        session.setActiveToolsByName(activeToolsBeforeTurnLimit);
+      } catch {
+        // Restore is best-effort; the session has already finished this prompt.
+      }
+    }
   }
 
   const responseText = collector.getText().trim() || getLastAssistantText(session);

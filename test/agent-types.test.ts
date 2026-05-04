@@ -114,10 +114,11 @@ describe("agent type registry", () => {
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
     });
 
-    it("Explore has GPT Codex Spark model in config", () => {
+    it("Explore has GPT Codex Spark model and bounded exploration defaults", () => {
       const cfg = getAgentConfig("Explore");
       expect(cfg?.model).toBe("gpt-5.3-codex-spark");
       expect(cfg?.thinking).toBe("medium");
+      expect(cfg?.maxTurns).toBe(12);
     });
 
     it("Web Research uses web access extensions and read-only built-ins", () => {

@@ -124,6 +124,25 @@ describe("agent-runner final output capture", () => {
     expect(result.responseText).toBe("LOCKED");
   });
 
+  it("disables tools at the soft turn limit so the agent must wrap up", async () => {
+    const { session, listeners } = createSession("WRAPPED");
+    session.prompt.mockImplementationOnce(async () => {
+      for (const listener of listeners) listener({ type: "turn_end" });
+      session.messages.push({
+        role: "assistant",
+        content: [{ type: "text", text: "WRAPPED" }],
+      });
+    });
+    createAgentSession.mockResolvedValue({ session });
+
+    const result = await runAgent(ctx, "Explore", "Say WRAPPED", { pi, maxTurns: 1 });
+
+    expect(session.setActiveToolsByName).toHaveBeenCalledWith([]);
+    expect(session.setActiveToolsByName).toHaveBeenLastCalledWith(["read"]);
+    expect(session.steer).toHaveBeenCalledWith(expect.stringContaining("Do not call tools again"));
+    expect(result).toMatchObject({ responseText: "WRAPPED", steered: true, aborted: false });
+  });
+
   it("binds extensions before prompting", async () => {
     const { session } = createSession("BOUND");
     createAgentSession.mockResolvedValue({ session });
