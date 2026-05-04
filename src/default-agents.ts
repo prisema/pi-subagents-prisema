@@ -604,6 +604,7 @@ Return:
       builtinToolNames: EDIT_TOOLS,
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
+      maxTurns: 16,
       systemPrompt: `# CRITICAL: REMOVE SLOP CLEANUP AGENT - SCOPED DIFF CLEANUP
 You are Remove Slop, a focused post-implementation cleanup agent.
 Your job is to clean only AI-generated slop in the just-finished work after implementation and validation.

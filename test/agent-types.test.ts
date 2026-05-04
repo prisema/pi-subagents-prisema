@@ -181,6 +181,10 @@ describe("agent type registry", () => {
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
     });
 
+    it("Remove Slop defaults to 16 max turns", () => {
+      expect(getAgentConfig("Remove Slop")?.maxTurns).toBe(16);
+    });
+
     it("default agents are marked isDefault", () => {
       const cfg = getAgentConfig("general-purpose");
       expect(cfg?.isDefault).toBe(true);
