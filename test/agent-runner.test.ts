@@ -71,7 +71,7 @@ vi.mock("../src/skill-loader.js", () => ({
   preloadSkills: vi.fn(() => []),
 }));
 
-import { resumeAgent, runAgent } from "../src/agent-runner.js";
+import { buildBestEffortOutput, resumeAgent, runAgent } from "../src/agent-runner.js";
 
 function createSession(finalText: string) {
   const listeners: Array<(event: any) => void> = [];
@@ -141,6 +141,24 @@ describe("agent-runner final output capture", () => {
     expect(session.setActiveToolsByName).toHaveBeenLastCalledWith(["read"]);
     expect(session.steer).toHaveBeenCalledWith(expect.stringContaining("Do not call tools again"));
     expect(result).toMatchObject({ responseText: "WRAPPED", steered: true, aborted: false });
+  });
+
+  it("recovers recent tool evidence when no final answer was produced", () => {
+    const session = {
+      messages: [
+        {
+          role: "toolResult",
+          toolName: "read",
+          content: [{ type: "text", text: "important schema fact" }],
+        },
+      ],
+    } as any;
+
+    const output = buildBestEffortOutput(session, new Error("WebSocket error"));
+
+    expect(output).toContain("Agent ended before producing a final answer.");
+    expect(output).toContain("Reason: WebSocket error");
+    expect(output).toContain("read: important schema fact");
   });
 
   it("binds extensions before prompting", async () => {

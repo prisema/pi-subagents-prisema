@@ -118,7 +118,7 @@ describe("agent type registry", () => {
       const cfg = getAgentConfig("Explore");
       expect(cfg?.model).toBe("gpt-5.3-codex-spark");
       expect(cfg?.thinking).toBe("medium");
-      expect(cfg?.maxTurns).toBe(12);
+      expect(cfg?.maxTurns).toBe(24);
     });
 
     it("Web Research uses web access extensions and read-only built-ins", () => {

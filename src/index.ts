@@ -979,7 +979,11 @@ Guidelines:
         : "";
 
       if (record.status === "error") {
-        return textResult(`${fallbackNote}Agent failed: ${record.error}`, details);
+        const recovered = record.result?.trim();
+        return textResult(
+          `${fallbackNote}Agent failed: ${record.error}` + (recovered ? `\n\n${recovered}` : ""),
+          details,
+        );
       }
 
       const durationMs = (record.completedAt ?? Date.now()) - record.startedAt;

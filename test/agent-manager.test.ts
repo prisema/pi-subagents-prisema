@@ -3,6 +3,11 @@ import { AgentManager } from "../src/agent-manager.js";
 import type { AgentRecord } from "../src/types.js";
 
 vi.mock("../src/agent-runner.js", () => ({
+  buildBestEffortOutput: vi.fn((session: any, err: unknown) => {
+    const text = session?.messages?.[0]?.content?.[0]?.text ?? "";
+    const reason = err instanceof Error ? err.message : String(err ?? "");
+    return `Agent ended before producing a final answer.\nReason: ${reason}\n${text}`;
+  }),
   runAgent: vi.fn(),
   resumeAgent: vi.fn(),
 }));
@@ -74,6 +79,34 @@ describe("AgentManager — Bug 1 race condition (resultConsumed vs onComplete)",
     await record.promise;
 
     expect(seenConsumed).toBe(true);
+  });
+
+  it("stores best-effort evidence when a run errors without final output", async () => {
+    manager = new AgentManager();
+    vi.mocked(runAgent).mockImplementation(async (_ctx, _type, _prompt, options) => {
+      options.onSessionCreated?.({
+        dispose: vi.fn(),
+        messages: [
+          {
+            role: "toolResult",
+            toolName: "grep",
+            content: [{ type: "text", text: "latest useful evidence" }],
+          },
+        ],
+      } as any);
+      throw new Error("WebSocket error");
+    });
+
+    const id = manager.spawn(mockPi, mockCtx, "general-purpose", "test", {
+      description: "test",
+      isBackground: true,
+    });
+    await manager.getRecord(id)!.promise;
+
+    const record = manager.getRecord(id)!;
+    expect(record.status).toBe("error");
+    expect(record.error).toBe("WebSocket error");
+    expect(record.result).toContain("latest useful evidence");
   });
 
   it("normal case: onComplete fires with resultConsumed falsy when no explicit polling", async () => {

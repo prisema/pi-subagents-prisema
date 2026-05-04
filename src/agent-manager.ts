@@ -9,7 +9,7 @@
 import { randomUUID } from "node:crypto";
 import type { Model } from "@mariozechner/pi-ai";
 import type { AgentSession, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { resumeAgent, runAgent, type ToolActivity } from "./agent-runner.js";
+import { buildBestEffortOutput, resumeAgent, runAgent, type ToolActivity } from "./agent-runner.js";
 import type { AgentRecord, IsolationMode, SubagentType, ThinkingLevel } from "./types.js";
 import { cleanupWorktree, createWorktree, pruneWorktrees, } from "./worktree.js";
 
@@ -181,7 +181,7 @@ export class AgentManager {
         if (record.status !== "stopped") {
           record.status = aborted ? "aborted" : steered ? "steered" : "completed";
         }
-        record.result = responseText;
+        record.result = responseText || buildBestEffortOutput(session, aborted ? "max turns exceeded" : undefined);
         record.session = session;
         record.completedAt ??= Date.now();
 
@@ -216,6 +216,7 @@ export class AgentManager {
           record.status = "error";
         }
         record.error = err instanceof Error ? err.message : String(err);
+        record.result = buildBestEffortOutput(record.session, err);
         record.completedAt ??= Date.now();
 
         detach();

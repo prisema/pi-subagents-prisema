@@ -142,6 +142,47 @@ function getLastAssistantText(session: AgentSession): string {
   return "";
 }
 
+function compactSnippet(text: string, maxLen = 1_200): string {
+  const compact = text.replace(/\s+/g, " ").trim();
+  return compact.length > maxLen ? compact.slice(0, maxLen) + "…" : compact;
+}
+
+function errorMessage(reason: unknown): string {
+  return reason instanceof Error ? reason.message : String(reason ?? "").trim();
+}
+
+/**
+ * Build a useful fallback when transport/abort failure leaves no final answer.
+ * This does not pretend to be the agent's conclusion; it preserves the latest
+ * evidence so the parent/user does not get a costly, empty "No output".
+ */
+export function buildBestEffortOutput(session: AgentSession | undefined, reason?: unknown): string {
+  if (session) {
+    const finalText = getLastAssistantText(session);
+    if (finalText) return finalText;
+  }
+
+  const lines = ["Agent ended before producing a final answer."];
+  const reasonText = errorMessage(reason);
+  if (reasonText) lines.push(`Reason: ${reasonText}`);
+
+  const recovered: string[] = [];
+  const messages = session?.messages ?? [];
+  for (let i = messages.length - 1; i >= 0 && recovered.length < 3; i--) {
+    const msg = messages[i] as any;
+    if (msg.role !== "toolResult") continue;
+    const text = compactSnippet(extractText(msg.content));
+    if (!text) continue;
+    recovered.unshift(`- ${msg.toolName ?? "tool"}: ${text}`);
+  }
+
+  if (recovered.length > 0) {
+    lines.push("", "Recovered latest tool evidence:", ...recovered);
+  }
+  lines.push("", "Use get_subagent_result with verbose: true or open the transcript for the full conversation.");
+  return lines.join("\n");
+}
+
 /**
  * Wire an AbortSignal to abort a session.
  * Returns a cleanup function to remove the listener.
