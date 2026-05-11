@@ -67,8 +67,8 @@ describe("settings persistence", () => {
   });
 
   it("loads from project when no global file", () => {
-    writeProject({ maxConcurrent: 8, defaultJoinMode: "group" });
-    expect(loadSettings(projectDir)).toEqual({ maxConcurrent: 8, defaultJoinMode: "group" });
+    writeProject({ maxConcurrent: 8, defaultJoinMode: "group", backgroundResultMode: "wait" });
+    expect(loadSettings(projectDir)).toEqual({ maxConcurrent: 8, defaultJoinMode: "group", backgroundResultMode: "wait" });
   });
 
   it("merges global + project with project winning on conflicts", () => {
@@ -88,6 +88,7 @@ describe("settings persistence", () => {
       defaultMaxTurns: 30,
       graceTurns: 3,
       defaultJoinMode: "smart" as const,
+      backgroundResultMode: "wait" as const,
     };
     saveSettings(settings, projectDir);
     expect(loadSettings(projectDir)).toEqual(settings);
@@ -179,6 +180,17 @@ describe("settings persistence", () => {
       }
     });
 
+    it("accepts valid background result modes and drops invalid values", () => {
+      for (const mode of ["wait", "async"] as const) {
+        writeProject({ backgroundResultMode: mode });
+        expect(loadSettings(projectDir)).toEqual({ backgroundResultMode: mode });
+      }
+      writeProject({ backgroundResultMode: "fire-and-forget" });
+      expect(loadSettings(projectDir)).toEqual({});
+      writeProject({ backgroundResultMode: true });
+      expect(loadSettings(projectDir)).toEqual({});
+    });
+
     it("returns {} when the JSON root is not an object (array, string, null)", () => {
       mkdirSync(join(projectDir, ".pi"), { recursive: true });
       writeFileSync(projectFile(), '["not", "an", "object"]');
@@ -195,8 +207,9 @@ describe("settings persistence", () => {
         defaultMaxTurns: -5, // dropped
         graceTurns: 3, // ok
         defaultJoinMode: "nope", // dropped
+        backgroundResultMode: "wait", // ok
       });
-      expect(loadSettings(projectDir)).toEqual({ maxConcurrent: 4, graceTurns: 3 });
+      expect(loadSettings(projectDir)).toEqual({ maxConcurrent: 4, graceTurns: 3, backgroundResultMode: "wait" });
     });
 
     it("accepts values at the ceiling (maxConcurrent=1024, defaultMaxTurns=10000, graceTurns=1000)", () => {
@@ -274,6 +287,7 @@ describe("settings persistence", () => {
         setDefaultMaxTurns: vi.fn(),
         setGraceTurns: vi.fn(),
         setDefaultJoinMode: vi.fn(),
+        setBackgroundResultMode: vi.fn(),
       };
     });
 
@@ -283,6 +297,7 @@ describe("settings persistence", () => {
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setGraceTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
+      expect(appliers.setBackgroundResultMode).not.toHaveBeenCalled();
     });
 
     it("applies only the fields that are present", () => {
@@ -291,17 +306,19 @@ describe("settings persistence", () => {
       expect(appliers.setGraceTurns).toHaveBeenCalledWith(3);
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
+      expect(appliers.setBackgroundResultMode).not.toHaveBeenCalled();
     });
 
-    it("applies all four fields when all are present", () => {
+    it("applies all fields when all are present", () => {
       applySettings(
-        { maxConcurrent: 8, defaultMaxTurns: 50, graceTurns: 7, defaultJoinMode: "group" },
+        { maxConcurrent: 8, defaultMaxTurns: 50, graceTurns: 7, defaultJoinMode: "group", backgroundResultMode: "wait" },
         appliers,
       );
       expect(appliers.setMaxConcurrent).toHaveBeenCalledWith(8);
       expect(appliers.setDefaultMaxTurns).toHaveBeenCalledWith(50);
       expect(appliers.setGraceTurns).toHaveBeenCalledWith(7);
       expect(appliers.setDefaultJoinMode).toHaveBeenCalledWith("group");
+      expect(appliers.setBackgroundResultMode).toHaveBeenCalledWith("wait");
     });
 
     it("applies defaultMaxTurns: 0 as the explicit unlimited marker", () => {
@@ -335,26 +352,28 @@ describe("settings persistence", () => {
         setDefaultMaxTurns: vi.fn(),
         setGraceTurns: vi.fn(),
         setDefaultJoinMode: vi.fn(),
+        setBackgroundResultMode: vi.fn(),
       };
     });
 
     it("loads, applies, and emits subagents:settings_loaded with merged settings", () => {
       writeGlobal({ maxConcurrent: 16 });
-      writeProject({ graceTurns: 7 });
+      writeProject({ graceTurns: 7, backgroundResultMode: "wait" });
       const emit = vi.fn();
 
       const result = applyAndEmitLoaded(appliers, emit, projectDir);
 
       expect(appliers.setMaxConcurrent).toHaveBeenCalledWith(16);
       expect(appliers.setGraceTurns).toHaveBeenCalledWith(7);
+      expect(appliers.setBackgroundResultMode).toHaveBeenCalledWith("wait");
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
 
       expect(emit).toHaveBeenCalledTimes(1);
       expect(emit).toHaveBeenCalledWith("subagents:settings_loaded", {
-        settings: { maxConcurrent: 16, graceTurns: 7 },
+        settings: { maxConcurrent: 16, graceTurns: 7, backgroundResultMode: "wait" },
       });
-      expect(result).toEqual({ maxConcurrent: 16, graceTurns: 7 });
+      expect(result).toEqual({ maxConcurrent: 16, graceTurns: 7, backgroundResultMode: "wait" });
     });
 
     it("still emits the event when both files are missing (payload carries {})", () => {
@@ -369,6 +388,7 @@ describe("settings persistence", () => {
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setGraceTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
+      expect(appliers.setBackgroundResultMode).not.toHaveBeenCalled();
     });
   });
 

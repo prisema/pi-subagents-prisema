@@ -514,6 +514,7 @@ Return a concise Taskdone Planning Package. Do not reply only with "files writte
       builtinToolNames: WRITE_TOOLS,
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
+      thinking: "high",
       maxTurns: 40,
       systemPrompt: `# CRITICAL: SCOPED TDD IMPLEMENTATION AGENT
 You are Implement, a Superpowers-style implementation specialist.

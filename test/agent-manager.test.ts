@@ -33,6 +33,35 @@ const resolvedRun = () =>
     steered: false,
   });
 
+describe("AgentManager — default concurrency", () => {
+  let manager: AgentManager;
+
+  afterEach(() => {
+    manager?.dispose();
+  });
+
+  it("allows 10 background agents before queueing by default", () => {
+    manager = new AgentManager();
+    vi.mocked(runAgent).mockImplementation(
+      () => new Promise(() => {}), // hangs forever
+    );
+
+    const ids = Array.from({ length: 11 }, (_, i) =>
+      manager.spawn(mockPi, mockCtx, "general-purpose", `test${i}`, {
+        description: `agent ${i}`,
+        isBackground: true,
+      }),
+    );
+
+    expect(ids.slice(0, 10).map(id => manager.getRecord(id)!.status)).toEqual(
+      Array(10).fill("running"),
+    );
+    expect(manager.getRecord(ids[10])!.status).toBe("queued");
+
+    for (const id of ids) manager.abort(id);
+  });
+});
+
 describe("AgentManager — Bug 1 race condition (resultConsumed vs onComplete)", () => {
   let manager: AgentManager;
 

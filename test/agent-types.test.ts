@@ -168,6 +168,7 @@ describe("agent type registry", () => {
       expect(config.description).toContain("TDD implementation");
       expect(config.builtinToolNames).toEqual(["read", "bash", "edit", "write", "grep", "find", "ls"]);
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
+      expect(getAgentConfig("Implement")?.thinking).toBe("high");
       expect(getAgentConfig("Implement")?.maxTurns).toBe(40);
     });
 

@@ -56,6 +56,9 @@ export interface AgentConfig {
 
 export type JoinMode = 'async' | 'group' | 'smart';
 
+/** Whether Agent(run_in_background=true) returns immediately or waits for completion. */
+export type BackgroundResultMode = "wait" | "async";
+
 export interface AgentRecord {
   id: string;
   type: SubagentType;

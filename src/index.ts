@@ -25,7 +25,7 @@ import { resolveAgentInvocationConfig, resolveJoinMode } from "./invocation-conf
 import { type ModelRegistry, resolveModel } from "./model-resolver.js";
 import { createOutputFilePath, streamToOutputFile, writeInitialEntry } from "./output-file.js";
 import { applyAndEmitLoaded, type SubagentsSettings, saveAndEmitChanged } from "./settings.js";
-import { type AgentConfig, type AgentRecord, type JoinMode, type NotificationDetails, type SubagentType } from "./types.js";
+import { type AgentConfig, type AgentRecord, type BackgroundResultMode, type JoinMode, type NotificationDetails, type SubagentType } from "./types.js";
 import {
   type AgentActivity,
   type AgentDetails,
@@ -108,6 +108,16 @@ function getStatusNote(status: string): string {
     case "steered": return " (wrapped up — reached turn limit)";
     case "stopped": return " (stopped by user)";
     default: return "";
+  }
+}
+
+async function waitForRecordCompletion(record: AgentRecord, signal?: AbortSignal): Promise<void> {
+  while ((record.status === "queued" || record.status === "running") && !signal?.aborted) {
+    if (record.promise) {
+      await record.promise;
+      continue;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 
@@ -465,6 +475,10 @@ export default function (pi: ExtensionAPI) {
   function setDefaultJoinMode(mode: JoinMode) { defaultJoinMode = mode; }
 
   // ---- Batch tracking for smart join mode ----
+  let backgroundResultMode: BackgroundResultMode = "wait";
+  function getBackgroundResultMode(): BackgroundResultMode { return backgroundResultMode; }
+  function setBackgroundResultMode(mode: BackgroundResultMode) { backgroundResultMode = mode; }
+
   // Collects background agent IDs spawned in the current turn for smart grouping.
   // Uses a debounced timer: each new agent resets the 100ms window so that all
   // parallel tool calls (which may be dispatched across multiple microtasks by the
@@ -557,6 +571,7 @@ export default function (pi: ExtensionAPI) {
       setDefaultMaxTurns,
       setGraceTurns,
       setDefaultJoinMode,
+      setBackgroundResultMode,
     },
     (event, payload) => pi.events.emit(event, payload),
   );
@@ -574,7 +589,8 @@ Available agent types:
 ${typeListText}
 
 Guidelines:
-- For parallel work, use run_in_background: true on each agent. Foreground calls run sequentially — only one executes at a time.
+- Prisema default is wait-for-result: even with run_in_background: true, the Agent tool waits for completion before returning so the parent cannot continue without using the result.
+- For parallel work, call multiple Agent tools with run_in_background: true in the same turn; they can run concurrently, but all results must return before parent work continues.
 - Use Explore for local codebase searches and code understanding.
 - Use Web Research for internet/current/external research, URLs, docs, articles, PDFs, videos, and source-backed Web Context Packs.
 - Use Systematic Debugging for bugs, test failures, build failures, and unexpected behavior before proposing fixes.
@@ -586,7 +602,7 @@ Guidelines:
 - Use general-purpose for complex tasks that do not fit the specialized roles.
 - Provide clear, detailed prompts so the agent can work autonomously.
 - Agent results are returned as text — summarize them for the user.
-- Use run_in_background for work you don't need immediately. You will be notified when it completes.
+- Do not use subagents as fire-and-forget validation. If async mode is explicitly enabled, call get_subagent_result with wait: true before local implementation, file edits, validation, or final answer.
 - Use resume with an agent ID to continue a previous agent's work.
 - Use steer_subagent to send mid-run messages to a running background agent.
 - Use model to specify a different model (as "provider/modelId", or fuzzy e.g. "haiku", "sonnet").
@@ -622,7 +638,7 @@ Guidelines:
       ),
       run_in_background: Type.Optional(
         Type.Boolean({
-          description: "Set to true to run in background. Returns agent ID immediately. You will be notified on completion.",
+          description: "Set to true to allow concurrent background scheduling. Prisema default still waits for completion before returning; async mode must be explicitly enabled in settings.",
         }),
       ),
       resume: Type.Optional(
@@ -843,15 +859,17 @@ Guidelines:
           thinkingLevel: thinking,
           isBackground: true,
           isolation,
+          signal,
           ...bgCallbacks,
         });
 
         // Set output file + join mode synchronously after spawn, before the
         // event loop yields — onSessionCreated is async so this is safe.
-        const joinMode = resolveJoinMode(defaultJoinMode, true);
+        const shouldWaitForBackgroundResult = backgroundResultMode === "wait";
+        const joinMode = shouldWaitForBackgroundResult ? undefined : resolveJoinMode(defaultJoinMode, true);
         const record = manager.getRecord(id);
-        if (record && joinMode) {
-          record.joinMode = joinMode;
+        if (record) {
+          if (joinMode) record.joinMode = joinMode;
           record.toolCallId = toolCallId;
 
           try {
@@ -862,10 +880,17 @@ Guidelines:
           } catch {
             record.outputFile = undefined;
           }
+
+          if (shouldWaitForBackgroundResult) {
+            // Hard barrier: a parent turn that spawns a subagent must receive and
+            // consume the subagent result before it can continue. This prevents
+            // expensive read-only agents from becoming unused parallel noise.
+            record.resultConsumed = true;
+          }
         }
 
         if (joinMode == null || joinMode === 'async') {
-          // Foreground/no join mode or explicit async — not part of any batch
+          // Foreground/no join mode, explicit async, or wait-for-result mode — not part of any batch
         } else {
           // smart or group — add to current batch
           currentBatchAgents.push({ id, joinMode });
@@ -887,16 +912,45 @@ Guidelines:
           isBackground: true,
         });
 
+        if (shouldWaitForBackgroundResult && record) {
+          await waitForRecordCompletion(record, signal);
+          cancelNudge(id);
+          agentActivity.delete(id);
+          widget.markFinished(id);
+          widget.update();
+
+          const finalDetails = buildDetails(detailBase, record, bgState, {
+            tokens: safeFormatTokens(bgState.session),
+          });
+          const fallbackNote = fellBack
+            ? `Note: Unknown agent type "${rawType}" — using general-purpose.\n\n`
+            : "";
+          const durationMs = (record.completedAt ?? Date.now()) - record.startedAt;
+          const statsParts = [`${record.toolUses} tool uses`];
+          const tokenText = safeFormatTokens(bgState.session);
+          if (tokenText) statsParts.push(tokenText);
+
+          if (record.status === "error") {
+            return textResult(`${fallbackNote}Agent failed: ${record.error}`, finalDetails);
+          }
+          return textResult(
+            `${fallbackNote}Agent completed in ${formatMs(durationMs)} (${statsParts.join(", ")})${getStatusNote(record.status)}.\n` +
+            `Background scheduling waited for completion before returning.\n\n` +
+            (record.result?.trim() || "No output."),
+            finalDetails,
+          );
+        }
+
         const isQueued = record?.status === "queued";
         return textResult(
-          `Agent ${isQueued ? "queued" : "started"} in background.\n` +
+          `Agent ${isQueued ? "queued" : "started"} in async background mode.\n` +
           `Agent ID: ${id}\n` +
           `Type: ${displayName}\n` +
           `Description: ${params.description}\n` +
           (record?.outputFile ? `Output file: ${record.outputFile}\n` : "") +
           (isQueued ? `Position: queued (max ${manager.getMaxConcurrent()} concurrent)\n` : "") +
           `\nYou will be notified when this agent completes.\n` +
-          `Use get_subagent_result to retrieve full results, or steer_subagent to send it messages.\n` +
+          `Use get_subagent_result(wait: true) before local implementation, file edits, validation, or final answer.\n` +
           `Do not duplicate this agent's work.`,
           { ...detailBase, toolUses: 0, tokens: "", durationMs: 0, status: "background" as const, agentId: id },
         );
@@ -1029,10 +1083,10 @@ Guidelines:
       // Pre-mark resultConsumed BEFORE awaiting: onComplete fires inside .then()
       // (attached earlier at spawn time) and always runs before this await resumes.
       // Setting the flag here prevents a redundant follow-up notification.
-      if (params.wait && record.status === "running" && record.promise) {
+      if (params.wait && (record.status === "queued" || record.status === "running")) {
         record.resultConsumed = true;
         cancelNudge(params.agent_id);
-        await record.promise;
+        await waitForRecordCompletion(record);
       }
 
       const displayName = getDisplayName(record.type);
@@ -1644,6 +1698,7 @@ ${systemPrompt}
       defaultMaxTurns: getDefaultMaxTurns() ?? 0,
       graceTurns: getGraceTurns(),
       defaultJoinMode: getDefaultJoinMode(),
+      backgroundResultMode: getBackgroundResultMode(),
     };
   }
 
@@ -1653,6 +1708,7 @@ ${systemPrompt}
       `Default max turns (current: ${getDefaultMaxTurns() ?? "unlimited"})`,
       `Grace turns (current: ${getGraceTurns()})`,
       `Join mode (current: ${getDefaultJoinMode()})`,
+      `Background result mode (current: ${getBackgroundResultMode()})`,
     ]);
     if (!choice) return;
 
@@ -1702,6 +1758,16 @@ ${systemPrompt}
         const mode = val.split(" ")[0] as JoinMode;
         setDefaultJoinMode(mode);
         notifyApplied(ctx, `Default join mode set to ${mode}`);
+      }
+    } else if (choice.startsWith("Background result mode")) {
+      const val = await ctx.ui.select("Background Agent tool result mode", [
+        "wait — block parent until each background agent completes (default)",
+        "async — legacy fire-and-forget; parent must call get_subagent_result(wait: true)",
+      ]);
+      if (val) {
+        const mode = val.split(" ")[0] as BackgroundResultMode;
+        setBackgroundResultMode(mode);
+        notifyApplied(ctx, `Background result mode set to ${mode}`);
       }
     }
   }

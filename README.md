@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/8685261b-9338-4fea-8dfe-1c590d5df543
 ## Features
 
 - **Claude Code look & feel** — same tool names, calling conventions, and UI patterns (`Agent`, `get_subagent_result`, `steer_subagent`) — feels native
-- **Parallel background agents** — spawn multiple agents that run concurrently with automatic queuing (configurable concurrency limit, default 4) and smart group join (consolidated notifications)
+- **Parallel background agents with result barrier** — spawn multiple agents that run concurrently, but Prisema waits for their results before the parent continues by default (`backgroundResultMode: "wait"`; legacy async is opt-in)
 - **Live widget UI** — persistent above-editor widget with animated spinners, live tool activity, token counts, and colored status icons
 - **Conversation viewer** — select any agent in `/agents` to open a live-scrolling overlay of its full conversation (auto-follows new content, scroll up to pause)
 - **Custom agent types** — define agents in `.pi/agents/<name>.md` with YAML frontmatter: custom system prompts, model selection, thinking levels, tool restrictions
@@ -62,7 +62,7 @@ Agent({
 })
 ```
 
-Foreground agents block until complete and return results inline. Background agents return an ID immediately and notify you on completion.
+Foreground agents block until complete and return results inline. With Prisema defaults, background agents can run concurrently but the `Agent` tool still waits for completion and returns the result inline, preventing unused fire-and-forget subagents. Set `backgroundResultMode: "async"` only when you explicitly need legacy ID-immediate behavior.
 
 ## UI
 
@@ -197,7 +197,7 @@ Launch a sub-agent.
 | `model` | string | no | Model — `provider/modelId` or fuzzy name (`"haiku"`, `"sonnet"`) |
 | `thinking` | string | no | Thinking level: off, minimal, low, medium, high, xhigh |
 | `max_turns` | number | no | Max agentic turns. Omit for unlimited (default) |
-| `run_in_background` | boolean | no | Run without blocking |
+| `run_in_background` | boolean | no | Allow background scheduling/concurrency. Prisema default still waits for completion before returning; set `backgroundResultMode: "async"` for legacy non-blocking behavior. |
 | `resume` | string | no | Agent ID to resume a previous session |
 | `isolated` | boolean | no | No extension/MCP tools |
 | `isolation` | `"worktree"` | no | Run in an isolated git worktree |
@@ -268,13 +268,13 @@ If a run ends without final assistant text (for example due to a transport/WebSo
 
 ## Concurrency
 
-Background agents are subject to a configurable concurrency limit (default: 4). Excess agents are automatically queued and start as running agents complete. The widget shows queued agents as a collapsed count.
+Background agents are subject to a configurable concurrency limit (default: 10). Excess agents are automatically queued and start as running agents complete. The widget shows queued agents as a collapsed count.
 
-Foreground agents bypass the queue — they block the parent anyway.
+Foreground agents bypass the queue — they block the parent anyway. With default `backgroundResultMode: "wait"`, background agents may still run concurrently with each other, but the parent receives results only after completion and cannot continue without them.
 
 ## Join Strategies
 
-When background agents complete, they notify the main agent. The **join mode** controls how these notifications are delivered. It applies only to background agents.
+When `backgroundResultMode` is set to `async`, background agents notify the main agent after completion. The **join mode** controls how these notifications are delivered. It applies only to async background agents.
 
 | Mode | Behavior |
 |------|----------|
@@ -285,16 +285,17 @@ When background agents complete, they notify the main agent. The **join mode** c
 **Timeout behavior:** When agents are grouped, a 30-second timeout starts after the first agent completes. If not all agents finish in time, a partial notification is sent with completed results and remaining agents continue with a shorter 15-second re-batch window for stragglers.
 
 **Configuration:**
-- Configure join mode in `/agents` → Settings → Join mode
+- Configure background result mode in `/agents` → Settings → Background result mode
+- Configure join mode in `/agents` → Settings → Join mode (used by async mode)
 
 ## Persistent Settings
 
-Runtime tuning values set via `/agents` → Settings (max concurrency, default max turns, grace turns, default join mode) persist across pi restarts. Two files, merged on load:
+Runtime tuning values set via `/agents` → Settings (max concurrency, default max turns, grace turns, default join mode, background result mode) persist across pi restarts. Two files, merged on load:
 
 - **Global:** `$PI_CODING_AGENT_DIR/subagents.json` (default `~/.pi/agent/subagents.json`) — your machine-wide defaults. Edit by hand; the `/agents` menu never writes here.
 - **Project:** `<cwd>/.pi/subagents.json` — per-project overrides. Written by `/agents` → Settings.
 
-**Precedence:** project overrides global on any field present in both. Missing fields fall back to the hardcoded defaults (max concurrency `4`, default max turns unlimited, grace turns `5`, join mode `smart`).
+**Precedence:** project overrides global on any field present in both. Missing fields fall back to the hardcoded defaults (max concurrency `10`, default max turns unlimited, grace turns `5`, join mode `smart`, background result mode `wait`).
 
 **Example — global defaults for a beefy machine:**
 
@@ -303,7 +304,8 @@ mkdir -p "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 cat > "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/subagents.json" <<'EOF'
 {
   "maxConcurrent": 16,
-  "graceTurns": 10
+  "graceTurns": 10,
+  "backgroundResultMode": "wait"
 }
 EOF
 ```

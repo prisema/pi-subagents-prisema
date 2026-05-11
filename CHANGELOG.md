@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3-prisema.8] - 2026-05-11
+
+### Added
+- Added `backgroundResultMode` setting. Default `wait` mode makes `Agent(run_in_background=true)` wait for subagent completion before returning results to the parent.
+
+### Changed
+- Default background subagent concurrency increased from 4 to 10.
+- Updated Agent tool guidance to forbid fire-and-forget diagnostic subagents unless async mode is explicitly enabled and results are collected with `get_subagent_result(wait: true)`.
+
+### Fixed
+- `get_subagent_result(wait: true)` now waits for queued background agents as well as running agents.
+
 ## [0.6.3-prisema.7] - 2026-05-04
 
 ### Changed
