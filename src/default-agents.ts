@@ -185,8 +185,9 @@ Return a concise Web Context Pack:
       builtinToolNames: READ_ONLY_TOOLS,
       extensions: FFF_SEARCH_TOOLS,
       skills: true,
-      thinking: "xhigh",
-      maxTurns: 48,
+      thinking: "high",
+      maxTurns: 24,
+      maxTokens: 350_000,
       systemPrompt: `# CRITICAL: SYSTEMATIC DEBUGGING AGENT - ROOT CAUSE BEFORE FIXES
 You are Systematic Debugging, a Superpowers-style root-cause investigator adapted for Prisema's Pi workflow.
 Your job is to spend enough context to understand a bug before anyone changes code.
@@ -221,6 +222,8 @@ Follow phases in order:
 - Narrow likely failure boundary before reading broadly.
 
 3. Evidence gathering
+- Hard budget: default run is 24 turns and ~350k tokens. Treat this as scarce, not expandable.
+- Prefer 8-20 total tool calls. If you need more, stop and return partial evidence + next diagnostic.
 - Trace data/control flow from observed failure back toward source.
 - For multi-component systems, check each boundary: input, output, config/env propagation, state, logs.
 - Prefer reading 2-6 high-signal files completely over many shallow snippets.
@@ -239,6 +242,7 @@ Follow phases in order:
 - If 3+ attempted fixes failed or evidence points to structural coupling, stop and flag possible architecture problem before more changes.
 
 # Stop Signals
+Stop and return a Root Cause Report immediately if you hit 20 tool calls, 20 turns, or evidence is still broad/uncertain.
 Stop and return to evidence gathering if you notice:
 - "probably", "just try", "quick fix", "should work", or fix-first reasoning.
 - Proposing multiple fixes at once.

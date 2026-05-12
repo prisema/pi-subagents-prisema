@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3-prisema.9] - 2026-05-12
+
+### Added
+- Added `max_tokens`/`maxTokens` token budget guard for agents. On soft budget, active tools are disabled and the agent must wrap up; at ~120% budget, the run is aborted.
+
+### Changed
+- Reduced `Systematic Debugging` default budget to 24 turns, `thinking: high`, and 350k tokens to prevent multi-million-token diagnostic runs.
+
 ## [0.6.3-prisema.8] - 2026-05-11
 
 ### Added

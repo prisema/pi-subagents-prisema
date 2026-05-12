@@ -139,8 +139,9 @@ describe("agent type registry", () => {
       expect(config.builtinToolNames).not.toContain("edit");
       expect(config.builtinToolNames).not.toContain("write");
       expect(config.extensions).toEqual(["ffgrep", "fffind", "fff-multi-grep"]);
-      expect(agentConfig?.thinking).toBe("xhigh");
-      expect(agentConfig?.maxTurns).toBe(48);
+      expect(agentConfig?.thinking).toBe("high");
+      expect(agentConfig?.maxTurns).toBe(24);
+      expect(agentConfig?.maxTokens).toBe(350_000);
     });
 
     it("SEO GEO Agent Search is a marketing implementation specialist", () => {

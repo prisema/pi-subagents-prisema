@@ -71,10 +71,11 @@ vi.mock("../src/skill-loader.js", () => ({
   preloadSkills: vi.fn(() => []),
 }));
 
-import { buildBestEffortOutput, resumeAgent, runAgent } from "../src/agent-runner.js";
+import { buildBestEffortOutput, normalizeMaxTokens, resumeAgent, runAgent } from "../src/agent-runner.js";
 
 function createSession(finalText: string) {
   const listeners: Array<(event: any) => void> = [];
+  let tokenTotal = 0;
   const session = {
     messages: [] as any[],
     subscribe: vi.fn((listener: (event: any) => void) => {
@@ -90,6 +91,8 @@ function createSession(finalText: string) {
     abort: vi.fn(),
     steer: vi.fn(),
     getActiveToolNames: vi.fn(() => ["read"]),
+    getSessionStats: vi.fn(() => ({ tokens: { total: tokenTotal } })),
+    setTokenTotal: (n: number) => { tokenTotal = n; },
     setActiveToolsByName: vi.fn(),
     bindExtensions: vi.fn(async () => {}),
   };
@@ -112,6 +115,18 @@ beforeEach(() => {
   getAgentDir.mockClear();
   sessionManagerInMemory.mockClear();
   settingsManagerCreate.mockClear();
+});
+
+describe("normalizeMaxTokens", () => {
+  it("treats undefined and 0 as unlimited", () => {
+    expect(normalizeMaxTokens(undefined)).toBeUndefined();
+    expect(normalizeMaxTokens(0)).toBeUndefined();
+  });
+
+  it("keeps positive values and clamps negatives", () => {
+    expect(normalizeMaxTokens(123)).toBe(123);
+    expect(normalizeMaxTokens(-1)).toBe(1);
+  });
 });
 
 describe("agent-runner final output capture", () => {
@@ -141,6 +156,31 @@ describe("agent-runner final output capture", () => {
     expect(session.setActiveToolsByName).toHaveBeenLastCalledWith(["read"]);
     expect(session.steer).toHaveBeenCalledWith(expect.stringContaining("Do not call tools again"));
     expect(result).toMatchObject({ responseText: "WRAPPED", steered: true, aborted: false });
+  });
+
+  it("disables tools when token budget is reached so the agent must wrap up", async () => {
+    const { session, listeners } = createSession("TOKEN WRAPPED");
+    session.prompt.mockImplementationOnce(async () => {
+      session.setTokenTotal(120);
+      for (const listener of listeners) listener({ type: "tool_execution_end", toolName: "read" });
+      session.messages.push({
+        role: "assistant",
+        content: [{ type: "text", text: "TOKEN WRAPPED" }],
+      });
+    });
+    createAgentSession.mockResolvedValue({ session });
+
+    const result = await runAgent(ctx, "Explore", "Say TOKEN WRAPPED", { pi, maxTokens: 100 });
+
+    expect(session.setActiveToolsByName).toHaveBeenCalledWith([]);
+    expect(session.setActiveToolsByName).toHaveBeenLastCalledWith(["read"]);
+    expect(session.steer).toHaveBeenCalledWith(expect.stringContaining("token budget reached"));
+    expect(result).toMatchObject({
+      responseText: "TOKEN WRAPPED",
+      steered: true,
+      aborted: false,
+      stopReason: "token budget reached (120/100)",
+    });
   });
 
   it("recovers recent tool evidence when no final answer was produced", () => {

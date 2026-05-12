@@ -35,6 +35,12 @@ export function normalizeMaxTurns(n: number | undefined): number | undefined {
   return Math.max(1, n);
 }
 
+/** Normalize max tokens. undefined or 0 = unlimited, otherwise minimum 1. */
+export function normalizeMaxTokens(n: number | undefined): number | undefined {
+  if (n == null || n === 0) return undefined;
+  return Math.max(1, n);
+}
+
 /** Get the default max turns value. undefined = unlimited. */
 export function getDefaultMaxTurns(): number | undefined { return defaultMaxTurns; }
 /** Set the default max turns value. undefined or 0 = unlimited, otherwise minimum 1. */
@@ -90,6 +96,7 @@ export interface RunOptions {
   pi: ExtensionAPI;
   model?: Model<any>;
   maxTurns?: number;
+  maxTokens?: number;
   signal?: AbortSignal;
   isolated?: boolean;
   inheritContext?: boolean;
@@ -108,10 +115,12 @@ export interface RunOptions {
 export interface RunResult {
   responseText: string;
   session: AgentSession;
-  /** True if the agent was hard-aborted (max_turns + grace exceeded). */
+  /** True if the agent was hard-aborted (max_turns + grace exceeded or token hard cap exceeded). */
   aborted: boolean;
-  /** True if the agent was steered to wrap up (hit soft turn limit) but finished in time. */
+  /** True if the agent was steered to wrap up (hit soft turn/token limit) but finished in time. */
   steered: boolean;
+  /** Human-readable reason for steered/aborted status. */
+  stopReason?: string;
 }
 
 /**
@@ -350,16 +359,30 @@ export async function runAgent(
 
   options.onSessionCreated?.(session);
 
-  // Track turns for graceful max_turns enforcement
+  // Track turns/tokens for graceful budget enforcement
   let turnCount = 0;
   const maxTurns = normalizeMaxTurns(options.maxTurns ?? agentConfig?.maxTurns ?? defaultMaxTurns);
+  const maxTokens = normalizeMaxTokens(options.maxTokens ?? agentConfig?.maxTokens);
+  const hardMaxTokens = maxTokens == null ? undefined : Math.ceil(maxTokens * 1.2);
   let softLimitReached = false;
   let aborted = false;
+  let stopReason: string | undefined;
   let activeToolsBeforeTurnLimit: string[] | undefined;
 
-  const requestFinalAnswer = () => {
+  const totalTokens = (): number | undefined => {
+    try {
+      const total = session.getSessionStats().tokens?.total;
+      return Number.isFinite(total) ? total : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const requestFinalAnswer = (reason = "turn limit") => {
+    if (softLimitReached) return;
     softLimitReached = true;
-    // Cost guard: once the turn budget is spent, remove tools so the next
+    stopReason = reason;
+    // Cost guard: once the budget is spent, remove tools so the next
     // assistant turn must summarize evidence instead of spending more on reads/searches.
     try {
       activeToolsBeforeTurnLimit = session.getActiveToolNames();
@@ -368,10 +391,25 @@ export async function runAgent(
       // Keep steering even if a runtime cannot disable tools.
     }
     session.steer(
-      "You have reached your turn limit. Do not call tools again. " +
+      `You have reached your ${reason}. Do not call tools again. ` +
       "Return your final answer now using only evidence gathered so far. " +
       "If incomplete, list unknowns and the next best action.",
     );
+  };
+
+  const enforceTokenBudget = () => {
+    if (maxTokens == null) return;
+    const total = totalTokens();
+    if (total == null) return;
+    if (hardMaxTokens != null && total > hardMaxTokens) {
+      aborted = true;
+      stopReason = `token hard cap exceeded (${total}/${hardMaxTokens})`;
+      session.abort();
+      return;
+    }
+    if (total >= maxTokens) {
+      requestFinalAnswer(`token budget reached (${total}/${maxTokens})`);
+    }
   };
 
   let currentMessageText = "";
@@ -381,12 +419,14 @@ export async function runAgent(
       options.onTurnEnd?.(turnCount);
       if (maxTurns != null) {
         if (!softLimitReached && turnCount >= maxTurns) {
-          requestFinalAnswer();
+          requestFinalAnswer("turn limit");
         } else if (softLimitReached && turnCount >= maxTurns + graceTurns) {
           aborted = true;
+          stopReason ??= "max turns exceeded";
           session.abort();
         }
       }
+      enforceTokenBudget();
     }
     if (event.type === "message_start") {
       currentMessageText = "";
@@ -400,6 +440,7 @@ export async function runAgent(
     }
     if (event.type === "tool_execution_end") {
       options.onToolActivity?.({ type: "end", toolName: event.toolName });
+      enforceTokenBudget();
     }
   });
 
@@ -431,7 +472,7 @@ export async function runAgent(
   }
 
   const responseText = collector.getText().trim() || getLastAssistantText(session);
-  return { responseText, session, aborted, steered: softLimitReached };
+  return { responseText, session, aborted, steered: softLimitReached, stopReason };
 }
 
 /**

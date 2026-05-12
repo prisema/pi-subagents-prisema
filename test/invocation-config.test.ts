@@ -25,6 +25,7 @@ describe("resolveAgentInvocationConfig", () => {
         model: "provider/config-model",
         thinking: "high",
         maxTurns: 42,
+        maxTokens: 200_000,
         inheritContext: false,
         runInBackground: false,
         isolated: false,
@@ -34,6 +35,7 @@ describe("resolveAgentInvocationConfig", () => {
         model: "provider/param-model",
         thinking: "minimal",
         max_turns: 1,
+        max_tokens: 999_999,
         inherit_context: true,
         run_in_background: true,
         isolated: true,
@@ -45,6 +47,7 @@ describe("resolveAgentInvocationConfig", () => {
     expect(resolved.modelFromParams).toBe(false);
     expect(resolved.thinking).toBe("high");
     expect(resolved.maxTurns).toBe(42);
+    expect(resolved.maxTokens).toBe(200_000);
     expect(resolved.inheritContext).toBe(false);
     expect(resolved.runInBackground).toBe(false);
     expect(resolved.isolated).toBe(false);
@@ -56,6 +59,7 @@ describe("resolveAgentInvocationConfig", () => {
       model: "provider/param-model",
       thinking: "minimal",
       max_turns: 3,
+      max_tokens: 123_456,
       inherit_context: true,
       run_in_background: true,
       isolated: true,
@@ -66,6 +70,7 @@ describe("resolveAgentInvocationConfig", () => {
     expect(resolved.modelFromParams).toBe(true);
     expect(resolved.thinking).toBe("minimal");
     expect(resolved.maxTurns).toBe(3);
+    expect(resolved.maxTokens).toBe(123_456);
     expect(resolved.inheritContext).toBe(true);
     expect(resolved.runInBackground).toBe(true);
     expect(resolved.isolated).toBe(true);

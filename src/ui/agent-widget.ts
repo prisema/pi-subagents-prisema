@@ -82,6 +82,8 @@ export interface AgentDetails {
   turnCount?: number;
   /** Effective max turns (undefined = unlimited). */
   maxTurns?: number;
+  /** Human-readable reason for steered/aborted status. */
+  statusReason?: string;
   agentId?: string;
   error?: string;
 }

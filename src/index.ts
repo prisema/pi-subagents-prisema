@@ -16,7 +16,7 @@ import { defineTool, type ExtensionAPI, type ExtensionCommandContext, type Exten
 import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 import { AgentManager } from "./agent-manager.js";
-import { getAgentConversation, getDefaultMaxTurns, getGraceTurns, normalizeMaxTurns, setDefaultMaxTurns, setGraceTurns, steerAgent } from "./agent-runner.js";
+import { getAgentConversation, getDefaultMaxTurns, getGraceTurns, normalizeMaxTokens, normalizeMaxTurns, setDefaultMaxTurns, setGraceTurns, steerAgent } from "./agent-runner.js";
 import { BUILTIN_TOOL_NAMES, getAgentConfig, getAllTypes, getAvailableTypes, getDefaultAgentNames, getUserAgentNames, registerAgents, resolveType } from "./agent-types.js";
 import { registerRpcHandlers } from "./cross-extension-rpc.js";
 import { loadCustomAgents } from "./custom-agents.js";
@@ -91,21 +91,21 @@ function createActivityTracker(maxTurns?: number, onStreamUpdate?: () => void) {
 }
 
 /** Human-readable status label for agent completion. */
-function getStatusLabel(status: string, error?: string): string {
+function getStatusLabel(status: string, error?: string, statusReason?: string): string {
   switch (status) {
     case "error": return `Error: ${error ?? "unknown"}`;
-    case "aborted": return "Aborted (max turns exceeded)";
-    case "steered": return "Wrapped up (turn limit)";
+    case "aborted": return `Aborted (${statusReason ?? "max turns exceeded"})`;
+    case "steered": return `Wrapped up (${statusReason ?? "turn limit"})`;
     case "stopped": return "Stopped";
     default: return "Done";
   }
 }
 
 /** Parenthetical status note for completed agent result text. */
-function getStatusNote(status: string): string {
+function getStatusNote(status: string, statusReason?: string): string {
   switch (status) {
-    case "aborted": return " (aborted — max turns exceeded, output may be incomplete)";
-    case "steered": return " (wrapped up — reached turn limit)";
+    case "aborted": return ` (aborted — ${statusReason ?? "max turns exceeded"}, output may be incomplete)`;
+    case "steered": return ` (wrapped up — ${statusReason ?? "reached turn limit"})`;
     case "stopped": return " (stopped by user)";
     default: return "";
   }
@@ -128,7 +128,7 @@ function escapeXml(s: string): string {
 
 /** Format a structured task notification matching Claude Code's <task-notification> XML. */
 function formatTaskNotification(record: AgentRecord, resultMaxLen: number): string {
-  const status = getStatusLabel(record.status, record.error);
+  const status = getStatusLabel(record.status, record.error, record.statusReason);
   const durationMs = record.completedAt ? record.completedAt - record.startedAt : 0;
   let totalTokens = 0;
   try {
@@ -160,7 +160,7 @@ function formatTaskNotification(record: AgentRecord, resultMaxLen: number): stri
 /** Build AgentDetails from a base + record-specific fields. */
 function buildDetails(
   base: Pick<AgentDetails, "displayName" | "description" | "subagentType" | "modelName" | "tags">,
-  record: { toolUses: number; startedAt: number; completedAt?: number; status: string; error?: string; id?: string; session?: any },
+  record: { toolUses: number; startedAt: number; completedAt?: number; status: string; error?: string; statusReason?: string; id?: string; session?: any },
   activity?: AgentActivity,
   overrides?: Partial<AgentDetails>,
 ): AgentDetails {
@@ -174,6 +174,7 @@ function buildDetails(
     status: record.status as AgentDetails["status"],
     agentId: record.id,
     error: record.error,
+    statusReason: record.statusReason,
     ...overrides,
   };
 }
@@ -189,6 +190,7 @@ function buildNotificationDetails(record: AgentRecord, resultMaxLen: number, act
     id: record.id,
     description: record.description,
     status: record.status,
+    statusReason: record.statusReason,
     toolUses: record.toolUses,
     turnCount: activity?.turnCount ?? 0,
     maxTurns: activity?.maxTurns,
@@ -215,8 +217,8 @@ export default function (pi: ExtensionAPI) {
       function renderOne(d: NotificationDetails): string {
         const isError = d.status === "error" || d.status === "stopped" || d.status === "aborted";
         const icon = isError ? theme.fg("error", "✗") : theme.fg("success", "✓");
-        const statusText = isError ? d.status
-          : d.status === "steered" ? "completed (steered)"
+        const statusText = isError ? (d.statusReason ? `${d.status}: ${d.statusReason}` : d.status)
+          : d.status === "steered" ? `completed (${d.statusReason ?? "steered"})`
           : "completed";
 
         // Line 1: icon + agent description + status
@@ -636,6 +638,12 @@ Guidelines:
           minimum: 1,
         }),
       ),
+      max_tokens: Type.Optional(
+        Type.Number({
+          description: "Soft token budget before tools are disabled and the agent must wrap up. Omit to use agent default.",
+          minimum: 1,
+        }),
+      ),
       run_in_background: Type.Optional(
         Type.Boolean({
           description: "Set to true to allow concurrent background scheduling. Prisema default still waits for completion before returning; async mode must be explicitly enabled in settings.",
@@ -726,7 +734,7 @@ Guidelines:
             }
           }
         } else {
-          const doneText = isSteered ? "Wrapped up (turn limit)" : "Done";
+          const doneText = isSteered ? `Wrapped up (${details.statusReason ?? "turn limit"})` : "Done";
           line += "\n" + theme.fg("dim", `  ⎿  ${doneText}`);
         }
         return new Text(line, 0, 0);
@@ -747,7 +755,7 @@ Guidelines:
       if (details.status === "error") {
         line += "\n" + theme.fg("error", `  ⎿  Error: ${details.error ?? "unknown"}`);
       } else {
-        line += "\n" + theme.fg("warning", "  ⎿  Aborted (max turns exceeded)");
+        line += "\n" + theme.fg("warning", `  ⎿  Aborted (${details.statusReason ?? "max turns exceeded"})`);
       }
 
       return new Text(line, 0, 0);
@@ -805,6 +813,7 @@ Guidelines:
       if (isolated) agentTags.push("isolated");
       if (isolation === "worktree") agentTags.push("worktree");
       const effectiveMaxTurns = normalizeMaxTurns(resolvedConfig.maxTurns ?? getDefaultMaxTurns());
+      const effectiveMaxTokens = normalizeMaxTokens(resolvedConfig.maxTokens);
       // Shared base fields for all AgentDetails in this call
       const detailBase = {
         displayName,
@@ -854,6 +863,7 @@ Guidelines:
           description: params.description,
           model,
           maxTurns: effectiveMaxTurns,
+          maxTokens: effectiveMaxTokens,
           isolated,
           inheritContext,
           thinkingLevel: thinking,
@@ -934,7 +944,7 @@ Guidelines:
             return textResult(`${fallbackNote}Agent failed: ${record.error}`, finalDetails);
           }
           return textResult(
-            `${fallbackNote}Agent completed in ${formatMs(durationMs)} (${statsParts.join(", ")})${getStatusNote(record.status)}.\n` +
+            `${fallbackNote}Agent completed in ${formatMs(durationMs)} (${statsParts.join(", ")})${getStatusNote(record.status, record.statusReason)}.\n` +
             `Background scheduling waited for completion before returning.\n\n` +
             (record.result?.trim() || "No output."),
             finalDetails,
@@ -1007,6 +1017,7 @@ Guidelines:
         description: params.description,
         model,
         maxTurns: effectiveMaxTurns,
+        maxTokens: effectiveMaxTokens,
         isolated,
         inheritContext,
         thinkingLevel: thinking,
@@ -1044,7 +1055,7 @@ Guidelines:
       const statsParts = [`${record.toolUses} tool uses`];
       if (tokenText) statsParts.push(tokenText);
       return textResult(
-        `${fallbackNote}Agent completed in ${formatMs(durationMs)} (${statsParts.join(", ")})${getStatusNote(record.status)}.\n\n` +
+        `${fallbackNote}Agent completed in ${formatMs(durationMs)} (${statsParts.join(", ")})${getStatusNote(record.status, record.statusReason)}.\n\n` +
         (record.result?.trim() || "No output."),
         details,
       );

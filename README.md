@@ -108,7 +108,7 @@ Group completions render each agent as a separate block. The LLM receives struct
 | `general-purpose` | all 7 | inherit | `append` (parent twin) | Inherits the parent's full system prompt — same rules, CLAUDE.md, project conventions |
 | `Explore` | read, bash, grep, find, ls + FFF search tools | gpt-5.3-codex-spark (falls back to inherit) | `replace` (standalone) | Fast context-building for codebase discovery (read-only, 36-turn cap) |
 | `Web Research` | read, bash, grep, find, ls + web research tools | inherit | `replace` (standalone) | Source-backed external/web research and Web Context Packs (read-only, 36-turn cap) |
-| `Systematic Debugging` | read, bash, grep, find, ls + FFF search tools | inherit | `replace` (standalone) | Superpowers-style root-cause investigator for bugs/failures before fixes (read-only, 48-turn cap) |
+| `Systematic Debugging` | read, bash, grep, find, ls + FFF search tools | inherit | `replace` (standalone) | Superpowers-style root-cause investigator for bugs/failures before fixes (read-only, 24-turn cap, 350k token budget) |
 | `SEO GEO Agent Search` | read, bash, edit, write, grep, find, ls + all extension tools | gpt-5.4 (falls back to inherit) | `replace` (standalone) | Marketing, SEO, GEO, AI Search, Agent Search, and AI-ready site specialist (40-turn cap) |
 | `Plan` | read, bash, grep, find, ls, write, edit + FFF search tools | inherit | `replace` (standalone) | Taskdone-ready planning artifact author (48-turn cap) |
 | `Implement` | read, bash, edit, write, grep, find, ls + FFF search tools | inherit | `replace` (standalone) | Superpowers-style TDD implementation agent (40-turn cap) |
@@ -141,6 +141,7 @@ tools: read, grep, find, bash
 model: anthropic/claude-opus-4-6
 thinking: high
 max_turns: 30
+max_tokens: 250000
 ---
 
 You are a security auditor. Review code for vulnerabilities including:
@@ -175,13 +176,14 @@ All fields are optional — sensible defaults for everything.
 | `model` | inherit parent | Model — `provider/modelId` or fuzzy name (`"haiku"`, `"sonnet"`) |
 | `thinking` | inherit | off, minimal, low, medium, high, xhigh |
 | `max_turns` | unlimited | Max agentic turns before graceful shutdown. `0` or omit for unlimited |
+| `max_tokens` | unlimited | Soft token budget. When reached, active tools are disabled and the agent must wrap up; hard abort at ~120% |
 | `prompt_mode` | `replace` | `replace`: body is the full system prompt (no AGENTS.md / CLAUDE.md inheritance). `append`: body appended to parent's prompt (agent acts as a "parent twin" — inherits parent's AGENTS.md / CLAUDE.md) |
 | `inherit_context` | `false` | Fork parent conversation into agent |
 | `run_in_background` | `false` | Run in background by default |
 | `isolated` | `false` | No extension/MCP tools, only built-in |
 | `enabled` | `true` | Set to `false` to disable an agent (useful for hiding a default agent per-project) |
 
-Frontmatter is authoritative. If an agent file sets `model`, `thinking`, `max_turns`, `inherit_context`, `run_in_background`, `isolated`, or `isolation`, those values are locked for that agent. `Agent` tool parameters only fill fields the agent config leaves unspecified.
+Frontmatter is authoritative. If an agent file sets `model`, `thinking`, `max_turns`, `max_tokens`, `inherit_context`, `run_in_background`, `isolated`, or `isolation`, those values are locked for that agent. `Agent` tool parameters only fill fields the agent config leaves unspecified.
 
 ## Tools
 
@@ -197,6 +199,7 @@ Launch a sub-agent.
 | `model` | string | no | Model — `provider/modelId` or fuzzy name (`"haiku"`, `"sonnet"`) |
 | `thinking` | string | no | Thinking level: off, minimal, low, medium, high, xhigh |
 | `max_turns` | number | no | Max agentic turns. Omit for unlimited (default) |
+| `max_tokens` | number | no | Soft token budget before tools are disabled and the agent must wrap up |
 | `run_in_background` | boolean | no | Allow background scheduling/concurrency. Prisema default still waits for completion before returning; set `backgroundResultMode: "async"` for legacy non-blocking behavior. |
 | `resume` | string | no | Agent ID to resume a previous session |
 | `isolated` | boolean | no | No extension/MCP tools |
@@ -247,15 +250,15 @@ Settings                                    ← max concurrency, max turns, grac
 - **Create new agent** — choose project/personal location, then manual wizard (step-by-step prompts for name, tools, model, thinking, system prompt) or AI-generated (describe what the agent should do and a sub-agent writes the `.md` file). Any name is allowed, including default agent names (overrides them)
 - **Settings** — configure max concurrency, default max turns, grace turns, and join mode at runtime
 
-## Graceful Max Turns
+## Graceful Budgets
 
-Instead of hard-aborting at the turn limit, agents get a graceful shutdown:
+Instead of hard-aborting at the first limit, agents get a graceful shutdown:
 
-1. At `max_turns` — active tools are disabled and a steering message tells the agent to return a final answer from evidence already gathered.
+1. At `max_turns` or `max_tokens` — active tools are disabled and a steering message tells the agent to return a final answer from evidence already gathered.
 2. Up to 5 grace turns to finish cleanly without more tool calls.
-3. Hard abort only after the grace period.
+3. Hard abort after turn grace or when token usage passes ~120% of `max_tokens`.
 
-Specialized defaults have embedded role-specific caps so broad jobs return incomplete-but-usable results instead of continuing expensive searches: `Explore` and `Web Research` use 36 turns, `Systematic Debugging` and `Plan` use 48, `SEO GEO Agent Search` and `Implement` use 40, `Review` uses 32, and `Remove Slop` uses 16. Override by ejecting/customizing an agent if a project needs a different budget.
+Specialized defaults have embedded role-specific caps so broad jobs return incomplete-but-usable results instead of continuing expensive searches: `Explore` and `Web Research` use 36 turns, `Systematic Debugging` uses 24 turns plus a 350k token budget, `Plan` uses 48 turns, `SEO GEO Agent Search` and `Implement` use 40, `Review` uses 32, and `Remove Slop` uses 16. Override by ejecting/customizing an agent if a project needs a different budget.
 
 If a run ends without final assistant text (for example due to a transport/WebSocket failure), notifications and `get_subagent_result` surface a best-effort recovery block with the error reason and latest tool-result evidence instead of plain `No output.`
 

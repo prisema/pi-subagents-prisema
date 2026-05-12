@@ -39,6 +39,7 @@ tools: read, grep, find
 model: anthropic/claude-opus-4-6
 thinking: high
 max_turns: 30
+max_tokens: 250000
 prompt_mode: replace
 inherit_context: true
 run_in_background: true
@@ -57,6 +58,7 @@ You are a security auditor.`);
     expect(agent.model).toBe("anthropic/claude-opus-4-6");
     expect(agent.thinking).toBe("high");
     expect(agent.maxTurns).toBe(30);
+    expect(agent.maxTokens).toBe(250000);
     expect(agent.promptMode).toBe("replace");
     expect(agent.inheritContext).toBe(true);
     expect(agent.runInBackground).toBe(true);

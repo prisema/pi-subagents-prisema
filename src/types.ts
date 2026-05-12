@@ -34,6 +34,8 @@ export interface AgentConfig {
   model?: string;
   thinking?: ThinkingLevel;
   maxTurns?: number;
+  /** Soft token budget. When reached, tools are disabled and the agent must wrap up. */
+  maxTokens?: number;
   systemPrompt: string;
   promptMode: "replace" | "append";
   /** Default for spawn: fork parent conversation. undefined = caller decides. */
@@ -66,6 +68,8 @@ export interface AgentRecord {
   status: "queued" | "running" | "completed" | "steered" | "aborted" | "stopped" | "error";
   result?: string;
   error?: string;
+  /** Human-readable reason for steered/aborted status, e.g. "token budget reached". */
+  statusReason?: string;
   toolUses: number;
   startedAt: number;
   completedAt?: number;
@@ -98,6 +102,7 @@ export interface NotificationDetails {
   toolUses: number;
   turnCount: number;
   maxTurns?: number;
+  statusReason?: string;
   totalTokens: number;
   durationMs: number;
   outputFile?: string;

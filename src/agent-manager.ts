@@ -31,6 +31,7 @@ interface SpawnOptions {
   description: string;
   model?: Model<any>;
   maxTurns?: number;
+  maxTokens?: number;
   isolated?: boolean;
   inheritContext?: boolean;
   thinkingLevel?: ThinkingLevel;
@@ -153,6 +154,7 @@ export class AgentManager {
       pi,
       model: options.model,
       maxTurns: options.maxTurns,
+      maxTokens: options.maxTokens,
       isolated: options.isolated,
       inheritContext: options.inheritContext,
       thinkingLevel: options.thinkingLevel,
@@ -176,12 +178,13 @@ export class AgentManager {
         options.onSessionCreated?.(session);
       },
     })
-      .then(({ responseText, session, aborted, steered }) => {
+      .then(({ responseText, session, aborted, steered, stopReason }) => {
         // Don't overwrite status if externally stopped via abort()
         if (record.status !== "stopped") {
           record.status = aborted ? "aborted" : steered ? "steered" : "completed";
         }
-        record.result = responseText || buildBestEffortOutput(session, aborted ? "max turns exceeded" : undefined);
+        record.statusReason = stopReason;
+        record.result = responseText || buildBestEffortOutput(session, aborted ? (stopReason ?? "max turns exceeded") : undefined);
         record.session = session;
         record.completedAt ??= Date.now();
 
