@@ -66,7 +66,7 @@ Foreground agents block until complete and return results inline. With Prisema d
 
 ## UI
 
-The extension renders a persistent widget above the editor showing all active agents:
+The extension renders a persistent widget above the editor showing running/queued agents only. Finished agents do not linger there; their result stays in the Agent tool block or completion notification:
 
 ```
 ● Agents

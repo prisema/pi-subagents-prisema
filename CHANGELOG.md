@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3-prisema.10] - 2026-05-12
+
+### Fixed
+- Finished agents no longer linger in the persistent `Agents` widget after completion; the widget now shows only running/queued agents and clears immediately when none remain.
+
 ## [0.6.3-prisema.9] - 2026-05-12
 
 ### Added
